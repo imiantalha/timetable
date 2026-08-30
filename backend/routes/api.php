@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\ConflictController;
 use App\Http\Controllers\Api\V1\CourseController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\RoomController;
@@ -20,5 +21,6 @@ Route::prefix('v1')->group(function (): void {
         Route::apiResource('teachers', TeacherController::class);
         Route::apiResource('sections', SectionController::class);
         Route::apiResource('time-slots', TimeSlotController::class);
+        Route::get('timetable-entries/{timetableEntry}/conflicts', [ConflictController::class, 'check']);
     });
 });
