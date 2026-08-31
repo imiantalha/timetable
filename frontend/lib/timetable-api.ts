@@ -29,6 +29,11 @@ export async function checkEntryConflicts(entryId: number) {
   return data.data;
 }
 
+export async function moveTimetableEntry(entryId: number, timeSlotId: number) {
+  const { data } = await api.patch(`/timetable-entries/${entryId}/move`, { time_slot_id: timeSlotId });
+  return data.data;
+}
+
 export async function generateTimetable(timetableId: number, assignments: unknown[], timeSlotIds: number[]) {
   const { data } = await api.post(`/timetables/${timetableId}/generate`, { assignments, time_slot_ids: timeSlotIds });
   return data.data;
