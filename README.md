@@ -1,207 +1,89 @@
 # Smart Timetable
 
-> A full-stack academic timetable management and scheduling platform built to make complex university scheduling easier to **create, validate, optimize, review, and publish**.
+A university timetable management project with a Laravel REST API and a Next.js frontend foundation. The backend models academic resources and provides API endpoints for managing the data used in timetable planning.
 
-[![Backend](https://img.shields.io/badge/Backend-Laravel%2013-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com/)
-[![Frontend](https://img.shields.io/badge/Frontend-Next.js-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
-[![Language](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php&logoColor=white)](https://www.php.net/)
-[![Database](https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![TypeScript](https://img.shields.io/badge/Frontend-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+> **Project status:** Active development. The backend domain and API are being built incrementally; the frontend is currently an early application foundation. This README distinguishes implemented foundations from planned product features.
 
-## Why Smart Timetable?
+## Tech stack
 
-University timetable scheduling is more than placing courses into empty cells. A usable system must account for **teacher availability, room availability, sections, time slots, conflicts, constraints, manual adjustments, and publishing workflows**.
-
-Smart Timetable is being designed around those real-world rules, with a Laravel API powering the scheduling domain and a Next.js interface providing an interactive administration experience.
-
-## ✨ Core Features
-
-- 🔐 Authentication and role-based access control
-- 🏫 Institution and department management
-- 📚 Course and section management
-- 👨‍🏫 Teacher management and availability
-- 🏢 Room management and availability
-- 🕐 Time-slot management
-- 📅 Interactive timetable grid
-- 🔍 Conflict detection and validation
-- 🖱️ Drag-and-drop timetable editing
-- ↩️ Optimistic updates with rollback on failed moves
-- 🤖 Constraint-aware timetable generation
-- 📝 Draft timetable review
-- 🚀 Timetable publishing workflow
-- 🔔 Notifications and calendar integrations planned
-- 📊 Scheduling analytics planned
-
-## 🏗️ Architecture
-
-```text
-┌──────────────────────────────────────────────┐
-│                 Next.js / React              │
-│        Scheduling UI • State • UX            │
-└──────────────────────┬───────────────────────┘
-                       │
-                       │ REST API /api/v1
-                       ▼
-┌──────────────────────────────────────────────┐
-│                  Laravel 13                  │
-│ Auth • RBAC • Domain Logic • Validation      │
-│ Timetable • Conflicts • Generation            │
-└──────────────┬─────────────────┬─────────────┘
-               │                 │
-               ▼                 ▼
-       ┌──────────────┐   ┌──────────────┐
-       │ PostgreSQL   │   │    Redis     │
-       │ Domain Data  │   │ Queue/Cache  │
-       └──────────────┘   └──────────────┘
-
-              Docker + GitHub Actions
-```
-
-## 🧠 Scheduling Model
-
-The system separates the scheduling problem into explicit resources and constraints:
-
-```text
-Department
-    ↓
-Section ───────┐
-    ↓          │
-  Courses      │
-    ↓          │
- Teachers      │
-    ↓          │
-  Rooms        │
-    ↓          │
- Time Slots ───┘
-    ↓
-Conflict Validation
-    ↓
-Generated Draft
-    ↓
-Manual Review / Drag & Drop
-    ↓
-Publish
-```
-
-This structure allows the application to support both **automatic generation** and **human-controlled timetable adjustments**.
-
-## 🛠️ Tech Stack
-
-### Backend
-
-- Laravel 13
-- PHP 8.3+
-- RESTful API
-- Laravel Sanctum
-- OOP / MVC / SOLID-oriented architecture
-- Validation and authorization
-- Queues and background processing
-
-### Frontend
-
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- Interactive scheduling UI
-
-### Data & Infrastructure
-
-- PostgreSQL
-- Redis
-- Docker
-- GitHub Actions
-
-## 📁 Core Domains
-
-| Domain | Responsibility |
+| Area | Technology |
 | --- | --- |
-| Authentication | Login, authentication, authorization and roles |
-| Institutions | Institutions and academic structure |
-| Departments | Academic department organization |
-| Courses | Course definitions and scheduling requirements |
-| Teachers | Faculty assignment and availability |
-| Sections | Student groups and academic sections |
-| Rooms | Room capacity, type and availability |
-| Time Slots | Scheduling periods and working hours |
-| Timetable | Draft schedules, entries and publishing |
-| Conflict Engine | Detect and prevent invalid schedules |
-| Generator | Build schedules from selected resources and constraints |
+| Backend | PHP 8.3+, Laravel 13 |
+| API authentication | Laravel Sanctum |
+| Frontend | Next.js 16, React 19, TypeScript 5 |
+| API style | Versioned REST API |
 
-## 🚦 Current Development Status
+Database, queue, cache, container, and deployment choices should be treated as environment- or roadmap-dependent unless configured in the relevant application files.
 
-**Active development — foundation and scheduling workflow are being implemented incrementally.**
-
-Implemented/in progress areas include the timetable API, resource configuration, conflict validation, interactive grid editing, drag-and-drop persistence, and generation workflow UI.
-
-The project deliberately uses separate feature branches for major modules so each capability can be developed and reviewed independently.
-
-## 🗺️ Roadmap
-
-- [x] Project foundation
-- [x] Core timetable UI foundation
-- [x] Drag-and-drop timetable editing
-- [x] Move persistence and rollback handling
-- [x] Generation configuration UI
-- [x] Backend resource API integration
-- [ ] Complete automatic constraint solver
-- [ ] Generation progress / queued jobs
-- [ ] Advanced conflict explanations
-- [ ] Timetable versioning and audit history
-- [ ] Calendar export (ICS)
-- [ ] Notifications
-- [ ] Scheduling analytics
-- [ ] Comprehensive automated test suite
-- [ ] Dockerized production deployment
-- [ ] CI/CD hardening
-
-## 🔄 Example Workflow
+## Repository structure
 
 ```text
-Admin creates academic resources
-            ↓
-Selects courses, teachers, rooms & time slots
-            ↓
-Generates a timetable draft
-            ↓
-Conflict engine validates the schedule
-            ↓
-Admin reviews generated timetable
-            ↓
-Drag & drop to make adjustments
-            ↓
-Changes are persisted with rollback protection
-            ↓
-Publish timetable
+.
+├── backend/       # Laravel API and scheduling domain
+├── frontend/      # Next.js App Router application
+└── docs/          # Architecture and project documentation
 ```
 
-## 🎯 Engineering Goals
+## Backend domains
 
-Smart Timetable is also an engineering project focused on demonstrating practical software development patterns:
+The API is organized around the resources required to describe an academic timetable:
 
-- Clear REST API contracts
-- Separation of frontend and backend responsibilities
-- Domain-driven scheduling rules
-- Validation before persistence
-- Safe optimistic UI updates
-- Conflict-aware business logic
-- Scalable background generation
-- Testable application services
-- Production-oriented error handling
-- Maintainable modular architecture
+- Departments
+- Courses
+- Teachers
+- Rooms
+- Sections
+- Time slots
+- Timetables
 
-## 🚀 Development Setup
+The backend includes versioned API routes, request validation, Eloquent models, authentication middleware, and resource-management endpoints. Scheduling and generation-related code is under active development; the presence of a route, job, or domain class does not necessarily mean the complete end-to-end workflow is production-ready.
+
+## Architecture
+
+The project separates the API and web application:
+
+```text
+┌──────────────────────────┐
+│ Next.js / React frontend │
+│ Web application          │
+└────────────┬─────────────┘
+             │ HTTP / JSON
+             ▼
+┌──────────────────────────┐
+│ Laravel 13 API           │
+│ Auth • Validation        │
+│ Academic resources       │
+│ Timetable domain         │
+└──────────────────────────┘
+```
+
+See [docs/architecture.md](docs/architecture.md) for the architecture notes.
+
+## Getting started
+
+### Prerequisites
+
+- PHP 8.3 or later
+- Composer
+- Node.js and npm
+- A database supported by the backend configuration
 
 ### Backend
 
 ```bash
 cd backend
 composer install
-cp .env.example .env
+```
+
+Configure the backend environment using the Laravel environment setup appropriate to your local machine, then configure the database connection before running migrations.
+
+```bash
 php artisan key:generate
 php artisan migrate
 php artisan serve
 ```
+
+If the repository does not contain a ready-to-copy `.env.example`, create the local `.env` from the configuration required by the application rather than assuming that file is available.
 
 ### Frontend
 
@@ -211,19 +93,47 @@ npm install
 npm run dev
 ```
 
-Set the frontend API URL in `.env.local`:
+The Next.js development server prints the local URL when it starts. Configure any API base URL expected by the frontend through its environment configuration.
 
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-```
+## API
 
-## 📌 Project Status
+The backend exposes a versioned API under the `/api/v1` route prefix. Routes cover authentication and academic resource management, with protected endpoints using Sanctum authentication middleware where configured.
 
-This repository is an **actively evolving engineering project**. Some roadmap items are intentionally marked as planned rather than presented as completed functionality.
+For the authoritative endpoint list and middleware configuration, see [backend/routes/api.php](backend/routes/api.php).
 
-## 👨‍💻 Author
+## Development status
 
-**Muhammad Talha** — Backend-focused Software Engineer working with Laravel, REST APIs, databases, React and Next.js.
+The repository is a work in progress. Current foundations include:
 
-- GitHub: https://github.com/imiantalha
-- Portfolio: https://imiantalha.vercel.app/
+- Laravel API application and versioned routes
+- Authentication middleware and protected resource routes
+- Models and request validation for core academic resources
+- Timetable and generation-related backend foundations
+- Next.js App Router frontend scaffold
+
+The following are product capabilities to build or complete, not claims of finished functionality:
+
+- End-to-end automatic timetable optimization
+- Complete conflict-resolution and explanation workflows
+- A fully interactive timetable editor
+- Publishing, version history, and audit trails
+- Notifications, calendar export, and analytics
+- Production deployment and CI/CD automation
+
+## Engineering direction
+
+The project is intended to explore maintainable API design, validation at system boundaries, explicit scheduling constraints, background processing for computational work, and a clear separation between frontend and backend responsibilities.
+
+## Contributing
+
+1. Create a focused feature or fix branch.
+2. Keep changes scoped to the relevant application.
+3. Run the checks available for the area you changed.
+4. Describe implementation status and any known limitations in your pull request.
+
+## Author
+
+**Muhammad Talha** — Software Engineer focused on backend development with PHP and Laravel.
+
+- GitHub: [@imiantalha](https://github.com/imiantalha)
+- Portfolio: [imiantalha.vercel.app](https://imiantalha.vercel.app/)
