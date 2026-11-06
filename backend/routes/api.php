@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\TeacherController;
 use App\Http\Controllers\Api\V1\TimeSlotController;
 use App\Http\Controllers\Api\V1\TimetableController;
 use App\Http\Controllers\Api\V1\TimetableEntryController;
+use App\Http\Controllers\Api\V1\TimetableEntryMoveController;
 use App\Http\Controllers\Api\V1\TimetableGenerationController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +29,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('timetables/{timetable}/publish', [TimetableController::class, 'publish']);
         Route::post('timetables/{timetable}/generate', [TimetableGenerationController::class, 'generate']);
         Route::apiResource('timetable-entries', TimetableEntryController::class)->only(['index','store','show','destroy']);
+        Route::patch('timetable-entries/{timetableEntry}/move', TimetableEntryMoveController::class);
         Route::get('timetable-entries/{timetableEntry}/conflicts', [ConflictController::class, 'check']);
     });
 });
