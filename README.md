@@ -1,32 +1,36 @@
 # Smart Timetable
 
-A university timetable management project with a Laravel REST API and a Next.js frontend foundation. The backend models academic resources and provides API endpoints for managing the data used in timetable planning.
+Smart Timetable is an academic scheduling platform in development. It is being built as a Laravel REST API with a separate Next.js frontend. The backend currently provides academic-resource management, timetable entry operations, conflict checks, and an initial timetable-generation workflow.
 
-> **Project status:** Active development. The backend domain and API are being built incrementally; the frontend is currently an early application foundation. This README distinguishes implemented foundations from planned product features.
+> **Status:** Backend foundations and API workflows are under active development. The frontend is currently a starter dashboard and is not yet a complete, API-connected scheduling interface.
 
 ## Tech stack
 
-| Area | Technology |
+| Layer | Technology |
 | --- | --- |
 | Backend | PHP 8.3+, Laravel 13 |
 | API authentication | Laravel Sanctum |
 | Frontend | Next.js 16, React 19, TypeScript 5 |
-| API style | Versioned REST API |
+| API | Versioned REST endpoints (`/api/v1`) |
+| Backend testing | PHPUnit 12 |
+| Frontend tooling | ESLint 9 |
 
-Database, queue, cache, container, and deployment choices should be treated as environment- or roadmap-dependent unless configured in the relevant application files.
+The database, cache, queue, and hosting providers are deployment decisions; consult the application configuration and deployment setup before assuming a specific provider.
 
-## Repository structure
+## Repository layout
 
 ```text
 .
-├── backend/       # Laravel API and scheduling domain
+├── backend/       # Laravel API, academic models, and scheduling domain
 ├── frontend/      # Next.js App Router application
-└── docs/          # Architecture and project documentation
+└── docs/          # Architecture and engineering notes
 ```
 
-## Backend domains
+## Current implementation
 
-The API is organized around the resources required to describe an academic timetable:
+### Backend
+
+The API includes protected resource routes for:
 
 - Departments
 - Courses
@@ -35,29 +39,46 @@ The API is organized around the resources required to describe an academic timet
 - Sections
 - Time slots
 - Timetables
+- Timetable entries
 
-The backend includes versioned API routes, request validation, Eloquent models, authentication middleware, and resource-management endpoints. Scheduling and generation-related code is under active development; the presence of a route, job, or domain class does not necessarily mean the complete end-to-end workflow is production-ready.
+Scheduling-related endpoints currently include:
+
+- **Generate timetable:** accepts assignment data and selected time-slot IDs, runs the scheduling generator, and reports placed and unplaced assignments.
+- **Check conflicts:** evaluates a timetable entry and returns whether it is valid along with detected conflicts.
+- **Publish timetable:** exposes a publish action for a timetable.
+- **Health check:** `GET /api/v1/health`.
+
+Resource-management and timetable routes are grouped behind Laravel Sanctum authentication middleware. Configure a valid authenticated API flow before calling those protected endpoints.
+
+### Frontend
+
+The Next.js App Router application currently provides an initial Smart Timetable landing/dashboard screen with placeholder summary counts. It is a foundation for the future scheduling interface; the full resource-management UI and API integration are still to be implemented.
 
 ## Architecture
 
-The project separates the API and web application:
+The frontend and backend are separate applications communicating over HTTP/JSON:
 
 ```text
-┌──────────────────────────┐
-│ Next.js / React frontend │
-│ Web application          │
-└────────────┬─────────────┘
-             │ HTTP / JSON
-             ▼
-┌──────────────────────────┐
-│ Laravel 13 API           │
-│ Auth • Validation        │
-│ Academic resources       │
-│ Timetable domain         │
-└──────────────────────────┘
+┌──────────────────────────────┐
+│ Next.js 16 / React 19        │
+│ Frontend application         │
+└──────────────┬───────────────┘
+               │ HTTP / JSON
+               ▼
+┌──────────────────────────────┐
+│ Laravel 13 REST API          │
+│ Sanctum • Validation         │
+│ Academic resources           │
+│ Scheduling domain            │
+└──────────────────────────────┘
 ```
 
-See [docs/architecture.md](docs/architecture.md) for the architecture notes.
+Scheduling rules belong in the domain layer rather than being embedded in HTTP controllers. The design distinguishes:
+
+- **Hard constraints:** conditions that must not be violated, such as teacher, room, or section overlaps and availability restrictions.
+- **Soft constraints:** preferences that can be optimized, such as gaps between classes and room utilization.
+
+See [docs/architecture.md](docs/architecture.md) for the architecture direction and domain boundaries.
 
 ## Getting started
 
@@ -66,16 +87,16 @@ See [docs/architecture.md](docs/architecture.md) for the architecture notes.
 - PHP 8.3 or later
 - Composer
 - Node.js and npm
-- A database supported by the backend configuration
+- A database supported by the Laravel application configuration
 
-### Backend
+### 1. Start the backend
 
 ```bash
 cd backend
 composer install
 ```
 
-Configure the backend environment using the Laravel environment setup appropriate to your local machine, then configure the database connection before running migrations.
+Create and configure the backend `.env` file for your local environment. Set the application key and database connection before running migrations.
 
 ```bash
 php artisan key:generate
@@ -83,9 +104,17 @@ php artisan migrate
 php artisan serve
 ```
 
-If the repository does not contain a ready-to-copy `.env.example`, create the local `.env` from the configuration required by the application rather than assuming that file is available.
+The Laravel development server normally starts at [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
-### Frontend
+Check the API health endpoint:
+
+```http
+GET http://127.0.0.1:8000/api/v1/health
+```
+
+### 2. Start the frontend
+
+Open a second terminal:
 
 ```bash
 cd frontend
@@ -93,43 +122,80 @@ npm install
 npm run dev
 ```
 
-The Next.js development server prints the local URL when it starts. Configure any API base URL expected by the frontend through its environment configuration.
+Open the local URL printed by Next.js (usually [http://localhost:3000](http://localhost:3000)).
 
-## API
+## API overview
 
-The backend exposes a versioned API under the `/api/v1` route prefix. Routes cover authentication and academic resource management, with protected endpoints using Sanctum authentication middleware where configured.
+All API routes are versioned under `/api/v1`.
 
-For the authoritative endpoint list and middleware configuration, see [backend/routes/api.php](backend/routes/api.php).
+| Endpoint | Purpose | Access |
+| --- | --- | --- |
+| `GET /api/v1/health` | API health check | Public |
+| `/api/v1/departments` | Department resources | Sanctum |
+| `/api/v1/courses` | Course resources | Sanctum |
+| `/api/v1/teachers` | Teacher resources | Sanctum |
+| `/api/v1/rooms` | Room resources | Sanctum |
+| `/api/v1/sections` | Section resources | Sanctum |
+| `/api/v1/time-slots` | Time-slot resources | Sanctum |
+| `/api/v1/timetables` | List, create, show, publish, and generate timetables | Sanctum |
+| `/api/v1/timetable-entries` | List, create, show, and delete entries | Sanctum |
+| `GET /api/v1/timetable-entries/{id}/conflicts` | Check an entry for conflicts | Sanctum |
 
-## Development status
+For exact route definitions and controller behavior, see [backend/routes/api.php](backend/routes/api.php).
 
-The repository is a work in progress. Current foundations include:
+## Development commands
 
-- Laravel API application and versioned routes
-- Authentication middleware and protected resource routes
-- Models and request validation for core academic resources
-- Timetable and generation-related backend foundations
-- Next.js App Router frontend scaffold
+### Backend
 
-The following are product capabilities to build or complete, not claims of finished functionality:
+Run the test suite:
 
-- End-to-end automatic timetable optimization
-- Complete conflict-resolution and explanation workflows
-- A fully interactive timetable editor
-- Publishing, version history, and audit trails
+```bash
+php artisan test
+```
+
+Check PHP formatting:
+
+```bash
+vendor/bin/pint --test
+```
+
+Composer scripts are also available as `composer test` and `composer lint`.
+
+### Frontend
+
+Run the linter:
+
+```bash
+npm run lint
+```
+
+Create a production build:
+
+```bash
+npm run build
+```
+
+Run commands from the relevant `backend/` or `frontend/` directory.
+
+## Roadmap
+
+The following are planned areas of work, not claims that the complete product is already available:
+
+- Complete authentication and account-management experience
+- API-connected dashboards and academic-resource management screens
+- Interactive timetable editor with validation feedback
+- More complete scheduling constraints and optimization strategies
+- Conflict explanations and resolution workflows
+- Timetable publishing lifecycle, versioning, and audit history
 - Notifications, calendar export, and analytics
-- Production deployment and CI/CD automation
-
-## Engineering direction
-
-The project is intended to explore maintainable API design, validation at system boundaries, explicit scheduling constraints, background processing for computational work, and a clear separation between frontend and backend responsibilities.
+- Automated tests, CI/CD, and production deployment
 
 ## Contributing
 
 1. Create a focused feature or fix branch.
 2. Keep changes scoped to the relevant application.
-3. Run the checks available for the area you changed.
-4. Describe implementation status and any known limitations in your pull request.
+3. Run the relevant backend or frontend checks.
+4. Document behavior, setup requirements, and known limitations in your pull request.
 
 ## Author
 
