@@ -118,33 +118,19 @@ The route definitions are maintained in [backend/routes/api.php](backend/routes/
 
 ### Prerequisites
 
-- PHP 8.3 or newer
-- Composer
+- PHP 8.3 or newer and Composer
 - A database supported by your Laravel configuration
-- Node.js compatible with your installed Next.js 16 release
-- npm
+- Node.js compatible with Next.js 16 and npm
 
-### 1. Configure the backend
+### Repository setup status
 
-```bash
-cd backend
-composer install
-cp .env.example .env
-php artisan key:generate
-```
+The repository currently contains the Laravel domain, API source, migrations, and Composer manifest, but it does not yet include the standard Laravel bootstrap files (such as `artisan`, `bootstrap/app.php`, and configuration files) or a tracked backend `.env.example`. The backend therefore cannot be started from a fresh clone yet; complete the Laravel application scaffold and environment configuration before running migrations or serving the API.
 
-Configure the database connection in `backend/.env`, then run:
+The frontend has a Next.js application and an `.env.example`. Its API client imports Axios, but Axios is not currently listed in `frontend/package.json`; declare that dependency before installing and building the frontend.
 
-```bash
-php artisan migrate
-php artisan serve
-```
+### Frontend environment
 
-The API will be available at `http://localhost:8000/api/v1`.
-
-### 2. Configure the frontend
-
-In a second terminal:
+Once the missing frontend dependency is declared:
 
 ```bash
 cd frontend
@@ -159,18 +145,20 @@ Set `NEXT_PUBLIC_API_URL` in `frontend/.env.local`:
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+The dashboard is served at [http://localhost:3000](http://localhost:3000). It requires a running backend and a valid Sanctum bearer token to load protected resources.
 
 ### Useful commands
 
-**Backend** (from `backend/`):
+**Backend** (after the Laravel application scaffold is complete):
 
 ```bash
+php artisan migrate
+php artisan serve
 php artisan test
 composer run lint
 ```
 
-**Frontend** (from `frontend/`):
+**Frontend** (after declaring Axios):
 
 ```bash
 npm run lint
