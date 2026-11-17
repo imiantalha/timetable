@@ -36,17 +36,23 @@ type ResourcePayload = {
 async function getOptions(resource: string, params: Record<string, number | undefined> = {}) {
   const response = await api.get<ResourcePayload | Record<string, unknown>[]>(`/${resource}`, { params });
   const payload = response.data;
-  const items = Array.isArray(payload)
+  const wrapped = payload as ResourcePayload;
+  const items: Record<string, unknown>[] = Array.isArray(payload)
     ? payload
-    : Array.isArray(payload.data)
-      ? payload.data
-      : payload.data?.data ?? [];
+    : Array.isArray(wrapped.data)
+      ? wrapped.data
+      : wrapped.data?.data ?? [];
 
   return items
     .filter((item) => typeof item.id === 'number')
     .map((item) => {
       const fullName = [item.first_name, item.last_name].filter(Boolean).join(' ');
-      const name = item.name ?? item.title ?? (fullName || item.code) ?? `#${item.id}`;
+      const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const day = typeof item.day_of_week === 'number' ? dayNames[item.day_of_week] : undefined;
+      const slotLabel = item.starts_at && item.ends_at
+        ? `${day ? `${day} · ` : ''}${String(item.starts_at)}–${String(item.ends_at)}`
+        : undefined;
+      const name = item.name ?? item.title ?? slotLabel ?? (fullName || item.code) ?? `#${item.id}`;
       return {
         id: item.id as number,
         name: String(name),
