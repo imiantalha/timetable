@@ -46,7 +46,7 @@ async function getOptions(resource: string, params: Record<string, number | unde
     .filter((item) => typeof item.id === 'number')
     .map((item) => {
       const fullName = [item.first_name, item.last_name].filter(Boolean).join(' ');
-      const name = item.name ?? item.title ?? fullName || item.code || `#${item.id}`;
+      const name = item.name ?? item.title ?? (fullName || item.code) ?? `#${item.id}`;
       return {
         id: item.id as number,
         name: String(name),
