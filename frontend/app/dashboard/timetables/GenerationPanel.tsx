@@ -10,7 +10,7 @@ type GenerationResult = {
   unplaced: Array<{ course_id: number; message: string }>;
 };
 
-export default function GenerationPanel({ timetableId = 1 }: { timetableId?: number }) {
+export default function GenerationPanel({ timetableId = 1, onGenerated }: { timetableId?: number; onGenerated?: () => void | Promise<void> }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [error, setError] = useState('');
@@ -27,6 +27,7 @@ export default function GenerationPanel({ timetableId = 1 }: { timetableId?: num
         config.timeSlotIds,
       );
       setResult(response as GenerationResult);
+      await onGenerated?.();
     } catch (exception: unknown) {
       const message =
         typeof exception === 'object' &&
