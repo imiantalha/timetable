@@ -2,23 +2,83 @@
 
 import { useState } from 'react';
 import { generateTimetable } from '../../../lib/timetable-api';
+import GenerationConfig, { type GenerationConfigValue } from './GenerationConfig';
 
-export default function GenerationPanel({ timetableId = 1, timeSlotIds = [] }: { timetableId?: number; timeSlotIds?: number[] }) {
+type GenerationResult = {
+  created_count: number;
+  unplaced_count: number;
+  unplaced: Array<{ course_id: number; message: string }>;
+};
+
+export default function GenerationPanel({ timetableId = 1 }: { timetableId?: number }) {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ status?: string; score?: number; created_count?: number; unplaced_count?: number; message?: string } | null>(null);
+  const [result, setResult] = useState<GenerationResult | null>(null);
+  const [error, setError] = useState('');
 
-  async function generate() {
-    setLoading(true); setResult(null);
-    try { setResult(await generateTimetable(timetableId, [], timeSlotIds)); }
-    catch (error: any) { setResult({ status: 'failed', message: error?.response?.data?.message ?? 'Generation failed. Please check the timetable constraints.' }); }
-    finally { setLoading(false); }
+  async function generate(config: GenerationConfigValue) {
+    setLoading(true);
+    setResult(null);
+    setError('');
+
+    try {
+      const response = await generateTimetable(
+        timetableId,
+        config.assignments,
+        config.timeSlotIds,
+      );
+      setResult(response as GenerationResult);
+    } catch (exception: unknown) {
+      const message =
+        typeof exception === 'object' &&
+        exception !== null &&
+        'response' in exception &&
+        typeof exception.response === 'object' &&
+        exception.response !== null &&
+        'data' in exception.response &&
+        typeof exception.response.data === 'object' &&
+        exception.response.data !== null &&
+        'message' in exception.response.data &&
+        typeof exception.response.data.message === 'string'
+          ? exception.response.data.message
+          : 'Generation failed. Check the selected resources and try again.';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  return <section className="mb-5 rounded-2xl border border-slate-800 bg-slate-900 p-5">
-    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div><p className="text-xs font-semibold uppercase tracking-wider text-cyan-400">Automatic generation</p><h2 className="mt-1 text-lg font-semibold">Generate a conflict-aware draft</h2><p className="mt-1 text-sm text-slate-500">Build a draft using the backend scheduling constraints.</p></div>
-      <button onClick={generate} disabled={loading} className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50">{loading ? 'Generating…' : 'Generate draft'}</button>
+  return (
+    <div>
+      <GenerationConfig onGenerate={generate} disabled={loading} />
+      {loading && (
+        <p role="status" className="mb-4 text-sm text-cyan-400">Generating timetable…</p>
+      )}
+      {error && (
+        <p role="alert" className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+          {error}
+        </p>
+      )}
+      {result && (
+        <div className="mb-5 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-3">
+            <p className="text-xs text-slate-500">Created entries</p>
+            <p className="mt-1 text-lg font-semibold">{result.created_count}</p>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-3">
+            <p className="text-xs text-slate-500">Unplaced courses</p>
+            <p className="mt-1 text-lg font-semibold">{result.unplaced_count}</p>
+          </div>
+          {result.unplaced.length > 0 && (
+            <ul className="sm:col-span-2 space-y-1 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-sm text-amber-200">
+              {result.unplaced.map((item, index) => (
+                <li key={`${item.course_id}-${index}`}>
+                  Course #{item.course_id}: {item.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
-    {result && <div className="mt-5 grid gap-3 sm:grid-cols-3"><div className="rounded-xl bg-slate-950 p-3"><p className="text-xs text-slate-500">Status</p><p className="mt-1 text-sm font-medium">{result.status ?? 'completed'}</p></div><div className="rounded-xl bg-slate-950 p-3"><p className="text-xs text-slate-500">Score</p><p className="mt-1 text-sm font-medium">{result.score ?? '—'}</p></div><div className="rounded-xl bg-slate-950 p-3"><p className="text-xs text-slate-500">Unplaced</p><p className="mt-1 text-sm font-medium">{result.unplaced_count ?? '—'}</p></div>{result.message && <p className="sm:col-span-3 text-sm text-red-300">{result.message}</p>}</div>}
-  </section>;
+  );
 }
