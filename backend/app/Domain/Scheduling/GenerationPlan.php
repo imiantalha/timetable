@@ -20,15 +20,19 @@ final class GenerationPlan
             ->pluck('sessions_per_week', 'id');
 
         return $assignments->flatMap(function ($assignment) use ($sessionCounts): Collection {
-            if (isset($assignment->session_number)) {
-                return collect([$assignment]);
-            }
-
             $count = max(1, (int) ($sessionCounts[$assignment->course_id] ?? 1));
 
-            return collect(range(1, $count))->map(function (int $sessionNumber) use ($assignment): object {
+            if (isset($assignment->session_number)) {
+                $expanded = clone $assignment;
+                $expanded->sessions_per_week = $count;
+
+                return collect([$expanded]);
+            }
+
+            return collect(range(1, $count))->map(function (int $sessionNumber) use ($assignment, $count): object {
                 $expanded = clone $assignment;
                 $expanded->session_number = $sessionNumber;
+                $expanded->sessions_per_week = $count;
 
                 return $expanded;
             });
