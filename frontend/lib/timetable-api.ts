@@ -34,7 +34,9 @@ type ResourcePayload = {
 };
 
 async function getOptions(resource: string, params: Record<string, number | undefined> = {}) {
-  const response = await api.get<ResourcePayload | Record<string, unknown>[]>(`/${resource}`, { params });
+  const response = await api.get<ResourcePayload | Record<string, unknown>[]>(`/${resource}`, {
+    params: { per_page: 100, ...params },
+  });
   const payload = response.data;
   const wrapped = payload as ResourcePayload;
   const items: Record<string, unknown>[] = Array.isArray(payload)
