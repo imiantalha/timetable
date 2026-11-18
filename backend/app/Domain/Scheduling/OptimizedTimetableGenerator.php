@@ -18,12 +18,17 @@ final class OptimizedTimetableGenerator
 
     public function generate(Timetable $timetable, Collection $assignments, Collection $slots): array
     {
-        $best = null;
+        $unplaced = collect();
+        $expandedAssignments = GenerationPlan::expandSessions($assignments)
+            ->sortByDesc(fn ($assignment) => $assignment->session_number ?? 1)
+            ->values();
 
-        foreach ($assignments->sortByDesc(fn ($a) => $a->sessions_per_week ?? 1)->values() as $assignment) {
+        foreach ($expandedAssignments as $assignment) {
             $placed = false;
+
             foreach ($slots as $slot) {
-                if (! $this->availability->teacherAvailable($assignment->teacher_id, $slot)
+                if ($slot->is_break
+                    || ! $this->availability->teacherAvailable($assignment->teacher_id, $slot)
                     || ! $this->availability->roomAvailable($assignment->room_id, $slot)) {
                     continue;
                 }
@@ -35,11 +40,11 @@ final class OptimizedTimetableGenerator
                     'section_id' => $assignment->section_id,
                     'room_id' => $assignment->room_id,
                     'time_slot_id' => $slot->id,
-                    'session_number' => $assignment->session_number ?? 1,
+                    'session_number' => $assignment->session_number,
                 ]);
                 $entry->setRelation('timetable', $timetable);
                 $entry->setRelation('timeSlot', $slot);
-                $entry->load(['teacher','section','room']);
+                $entry->load(['teacher', 'section', 'room']);
 
                 if ($this->conflictDetector->detect($entry)->isEmpty()) {
                     $entry->save();
@@ -49,16 +54,23 @@ final class OptimizedTimetableGenerator
             }
 
             if (! $placed) {
-                $best ??= ['entries' => collect(), 'unplaced' => collect()];
-                $best['unplaced']->push(['course_id' => $assignment->course_id, 'message' => 'No valid slot satisfies the hard constraints.']);
+                $unplaced->push([
+                    'course_id' => $assignment->course_id,
+                    'session_number' => $assignment->session_number,
+                    'message' => 'No valid slot satisfies the hard constraints.',
+                ]);
             }
         }
 
-        $entries = TimetableEntry::query()->where('timetable_id', $timetable->id)->with('timeSlot')->get();
+        $entries = TimetableEntry::query()
+            ->where('timetable_id', $timetable->id)
+            ->with('timeSlot')
+            ->get();
+
         return [
             'entries' => $entries,
-            'unplaced' => $best['unplaced'] ?? collect(),
-            'score' => $this->scorer->score($entries, $best['unplaced'] ?? collect()),
+            'unplaced' => $unplaced,
+            'score' => $this->scorer->score($entries, $unplaced),
         ];
     }
 }
