@@ -16,6 +16,7 @@ class CourseController extends Controller
     {
         $courses = Course::query()
             ->with('department:id,name,code')
+            ->when($request->filled('department_id'), fn ($query) => $query->where('department_id', $request->integer('department_id')))
             ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();
                 $query->where(fn ($q) => $q->where('name', 'ilike', "%{$search}%")
