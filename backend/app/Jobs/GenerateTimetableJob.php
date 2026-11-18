@@ -48,7 +48,7 @@ final class GenerateTimetableJob implements ShouldQueue
 
         Cache::put("timetable-generation:{$this->generationId}", [
             'status' => 'completed',
-            'created_count' => $result['entries']->count(),
+            'created_count' => $result['created_count'],
             'unplaced_count' => $result['unplaced']->count(),
             'score' => $result['score'],
         ], now()->addHour());
