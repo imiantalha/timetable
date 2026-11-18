@@ -19,6 +19,7 @@ final class OptimizedTimetableGenerator
     public function generate(Timetable $timetable, Collection $assignments, Collection $slots): array
     {
         $unplaced = collect();
+        $createdCount = 0;
         $expandedAssignments = GenerationPlan::expandSessions($assignments)
             ->sortByDesc(fn ($assignment) => $assignment->session_number ?? 1)
             ->values();
@@ -48,6 +49,7 @@ final class OptimizedTimetableGenerator
 
                 if ($this->conflictDetector->detect($entry)->isEmpty()) {
                     $entry->save();
+                    $createdCount++;
                     $placed = true;
                     break;
                 }
@@ -69,6 +71,7 @@ final class OptimizedTimetableGenerator
 
         return [
             'entries' => $entries,
+            'created_count' => $createdCount,
             'unplaced' => $unplaced,
             'score' => $this->scorer->score($entries, $unplaced),
         ];
