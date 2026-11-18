@@ -21,7 +21,7 @@ final class OptimizedTimetableGenerator
         $unplaced = collect();
         $createdCount = 0;
         $expandedAssignments = GenerationPlan::expandSessions($assignments)
-            ->sortByDesc(fn ($assignment) => $assignment->session_number ?? 1)
+            ->sortByDesc(fn ($assignment) => $assignment->sessions_per_week ?? 1)
             ->values();
 
         foreach ($expandedAssignments as $assignment) {
