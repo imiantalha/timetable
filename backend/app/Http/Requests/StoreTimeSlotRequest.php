@@ -12,7 +12,10 @@ class StoreTimeSlotRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === 'admin';
+        $user = $this->user();
+
+        return $user?->role === 'admin'
+            && ($this->input('institution_id') === null || $user->institution_id === null || (int) $this->input('institution_id') === (int) $user->institution_id);
     }
 
     public function rules(): array
