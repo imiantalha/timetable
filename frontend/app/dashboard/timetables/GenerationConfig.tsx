@@ -67,7 +67,7 @@ export default function GenerationConfig({
     setCourseIds([]);
     setTeacherId(null);
 
-    Promise.all([getSections(departmentId), getCourses(departmentId), getTeachers(departmentId)])
+    Promise.all([getSections(departmentId), getCourses(departmentId), getTeachers()])
       .then(([sectionOptions, courseOptions, teacherOptions]) => {
         if (!active) return;
         setSections(sectionOptions);
