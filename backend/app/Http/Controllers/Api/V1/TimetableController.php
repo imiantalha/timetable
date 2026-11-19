@@ -35,6 +35,11 @@ final class TimetableController extends Controller
             'status' => ['sometimes', Rule::in(['draft'])],
         ]);
 
+        if ($request->user()?->institution_id !== null
+            && (int) $request->user()->institution_id !== (int) $data['institution_id']) {
+            abort(404);
+        }
+
         $semester = Semester::with('academicYear')->findOrFail($data['semester_id']);
 
         if ((int) $semester->academicYear->institution_id !== (int) $data['institution_id']) {
