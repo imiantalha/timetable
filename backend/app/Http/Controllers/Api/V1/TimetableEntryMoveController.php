@@ -8,10 +8,12 @@ use App\Domain\Scheduling\ConflictDetector;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MoveTimetableEntryRequest;
 use App\Models\TimeSlot;
+use App\Models\Timetable;
 use App\Models\TimetableEntry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 final class TimetableEntryMoveController extends Controller
 {
@@ -22,6 +24,21 @@ final class TimetableEntryMoveController extends Controller
         $slot = TimeSlot::findOrFail($request->integer('time_slot_id'));
 
         return DB::transaction(function () use ($timetableEntry, $slot): JsonResponse {
+            $timetable = Timetable::query()
+                ->whereKey($timetableEntry->timetable_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($timetable->status !== 'draft') {
+                throw new ConflictHttpException('Published timetable entries cannot be moved.');
+            }
+
+            if ((int) $slot->institution_id !== (int) $timetable->institution_id || $slot->is_break) {
+                throw ValidationException::withMessages([
+                    'time_slot_id' => ['Choose a non-break time slot from the same institution.'],
+                ]);
+            }
+
             $timetableEntry->time_slot_id = $slot->id;
             $timetableEntry->setRelation('timeSlot', $slot);
             $conflicts = $this->detector->detect($timetableEntry);
@@ -31,6 +48,7 @@ final class TimetableEntryMoveController extends Controller
             }
 
             $timetableEntry->save();
+
             return response()->json(['data' => $timetableEntry->fresh()->load(['course','teacher','section','room','timeSlot'])]);
         });
     }
