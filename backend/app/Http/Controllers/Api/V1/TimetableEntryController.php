@@ -48,6 +48,11 @@ final class TimetableEntryController extends Controller
         $entry = DB::transaction(function () use ($data): TimetableEntry {
             $timetable = Timetable::query()->whereKey($data['timetable_id'])->lockForUpdate()->firstOrFail();
 
+            if (auth()->user()?->institution_id !== null
+                && (int) auth()->user()->institution_id !== (int) $timetable->institution_id) {
+                abort(404);
+            }
+
             if ($timetable->status !== 'draft') {
                 throw new ConflictHttpException('Entries can only be changed while the timetable is a draft.');
             }
