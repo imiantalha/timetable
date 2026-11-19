@@ -17,11 +17,11 @@ export default function TimetableGrid({
   onMove: (entry: TimetableEntry, slot: GridSlot) => void;
   onSelect: (entry: TimetableEntry) => void;
 }) {
-  const entriesByCell = new Map(
-    entries.map((entry) => [`${entry.timeSlot.day_of_week}-${entry.timeSlot.id}`, entry]),
+  const entriesByCell = new Map<string, TimetableEntry>(
+    entries.map((entry) => [`${entry.timeSlot.day_of_week}-${entry.timeSlot.id}`, entry] as const),
   );
-  const slotsByCell = new Map(
-    slots.map((slot) => [`${slot.day_of_week}-${slot.starts_at}-${slot.ends_at}`, slot]),
+  const slotsByCell = new Map<string, GridSlot>(
+    slots.map((slot) => [`${slot.day_of_week}-${slot.starts_at}-${slot.ends_at}`, slot] as const),
   );
   const timeRanges = Array.from(
     new Set(slots.map((slot) => `${slot.starts_at}|${slot.ends_at}`)),
