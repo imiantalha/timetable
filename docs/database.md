@@ -1,50 +1,40 @@
 # Database Design
 
-The database is PostgreSQL and is designed around academic resources and schedule assignments.
+PostgreSQL is the primary database. The migrations create the following tables:
 
-## Core entities
+- **Identity and tenancy:** institutions, users, personal_access_tokens
+- **Academic resources:** departments, courses, teachers, students, sections, rooms
+- **Academic periods:** academic_years, semesters
+- **Scheduling:** time_slots, timetables, timetable_entries
+- **Availability:** teacher_availabilities, room_availabilities
 
-```text
+## Relationships
+
+~~~text
 Institution
  ├── Department ── Course
+ │       └── Section
  ├── Teacher
  ├── Student ── Section
- └── Room
+ ├── Room
+ ├── TimeSlot
+ └── AcademicYear ── Semester ── Timetable ── TimetableEntry
+~~~
 
-Academic Year ── Semester ── Timetable ── Timetable Entry
-                                      │
-                 ┌────────────────────┼────────────────────┐
-                 ▼                    ▼                    ▼
-               Course              Teacher              Section
-                                      │
-                                    Room + Time Slot
-```
+Users belong optionally to an institution. Institution-scoped API access is enforced for authenticated users; an administrator without an institution assignment is treated as a platform administrator.
 
-## Planned tables
+## Timetable entries
 
-- users
-- roles / permissions
-- institutions
-- departments
-- teachers
-- students
-- sections
-- courses
-- rooms
-- academic_years
-- semesters
-- time_slots
-- timetables
-- timetable_entries
-- teacher_availabilities
-- room_availabilities
+Each entry associates one timetable, course, teacher, section, room, time slot and session number. A unique database constraint prevents the same course session from being inserted twice into one timetable.
 
-## Timetable entry
+Indexes support lookups by timetable/time slot and by teacher, section or room/time slot. The scheduling domain additionally detects overlaps between time ranges, not only identical time-slot IDs.
 
-A timetable entry associates a course, teacher, section, room and time slot within a timetable/semester.
+## Course and time-slot rules
 
-The schema will enforce relational integrity and add database-level indexes/unique constraints where they are safe and useful. Scheduling conflicts that depend on business rules will be validated in the application/domain layer.
+Courses store credits, sessions_per_week and duration_minutes. Generation expands a course into its required weekly sessions and only uses slots long enough for the course.
 
-## Future scheduling data
+Time slots store a day_of_week (0–6), starts_at, ends_at and is_break flag. Overlapping time-slot definitions for the same institution/day are rejected.
 
-Course session requirements and generator configuration will be added as the scheduling engine is implemented rather than prematurely coupling the initial schema to one algorithm.
+## Availability
+
+Teacher and room availability rows define a day and an available time interval. If a resource has no availability rows, it is treated as unrestricted. Once availability rows exist, a selected slot must fit entirely inside an available interval.
