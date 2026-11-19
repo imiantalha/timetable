@@ -1,5 +1,7 @@
 name: CI
 
+# Runs backend and frontend validation for the latest pull request revision.
+
 on:
   push:
     branches: [main]
