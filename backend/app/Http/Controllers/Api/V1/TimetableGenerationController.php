@@ -8,9 +8,14 @@ use App\Domain\Scheduling\TimetableGenerator;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GenerateTimetableRequest;
 use App\Models\Timetable;
+use App\Models\Course;
+use App\Models\Room;
+use App\Models\Section;
+use App\Models\Teacher;
 use App\Models\TimeSlot;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 final class TimetableGenerationController extends Controller
@@ -31,6 +36,37 @@ final class TimetableGenerationController extends Controller
 
             if ($lockedTimetable->entries()->exists()) {
                 throw new ConflictHttpException('This timetable already contains entries. Clear the draft before generating it again.');
+            }
+
+            $courseIds = $assignments->pluck('course_id')->unique();
+            $sectionIds = $assignments->pluck('section_id')->unique();
+            $teacherIds = $assignments->pluck('teacher_id')->unique();
+            $roomIds = $assignments->pluck('room_id')->unique();
+
+            $courses = Course::query()->whereIn('id', $courseIds)->get(['id', 'department_id'])->keyBy('id');
+            $sections = Section::query()->whereIn('id', $sectionIds)->get(['id', 'department_id'])->keyBy('id');
+            $validTeachers = Teacher::query()
+                ->where('institution_id', $lockedTimetable->institution_id)
+                ->whereIn('id', $teacherIds)->count();
+            $validRooms = Room::query()
+                ->where('institution_id', $lockedTimetable->institution_id)
+                ->whereIn('id', $roomIds)->count();
+
+            if ($courses->count() !== $courseIds->count()
+                || $sections->count() !== $sectionIds->count()
+                || $validTeachers !== $teacherIds->count()
+                || $validRooms !== $roomIds->count()) {
+                throw ValidationException::withMessages([
+                    'assignments' => ['Every selected resource must belong to the timetable institution.'],
+                ]);
+            }
+
+            foreach ($assignments as $assignment) {
+                if ($courses[$assignment->course_id]->department_id !== $sections[$assignment->section_id]->department_id) {
+                    throw ValidationException::withMessages([
+                        'assignments' => ['Each course and section must belong to the same department.'],
+                    ]);
+                }
             }
 
             $slots = TimeSlot::query()
