@@ -46,7 +46,7 @@ async function getOptions(resource: string, params: Record<string, number | unde
       : wrapped.data?.data ?? [];
 
   return items
-    .filter((item) => typeof item.id === 'number')
+    .filter((item) => typeof item.id === 'number' && item.is_active !== false && !(resource === 'time-slots' && item.is_break === true))
     .map((item) => {
       const fullName = [item.first_name, item.last_name].filter(Boolean).join(' ');
       const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -66,7 +66,7 @@ async function getOptions(resource: string, params: Record<string, number | unde
 export const getDepartments = () => getOptions('departments');
 export const getSections = (departmentId?: number) => getOptions('sections', { department_id: departmentId });
 export const getCourses = (departmentId?: number) => getOptions('courses', { department_id: departmentId });
-export const getTeachers = (departmentId?: number) => getOptions('teachers', { department_id: departmentId });
+export const getTeachers = () => getOptions('teachers');
 export const getRooms = () => getOptions('rooms');
 export const getTimeSlots = () => getOptions('time-slots');
 
