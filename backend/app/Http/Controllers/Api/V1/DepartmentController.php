@@ -12,5 +12,5 @@ class DepartmentController extends Controller {
  public function store(StoreDepartmentRequest $request): JsonResponse { $item=Department::create($request->validated()); return response()->json(['data'=>$item->load('institution')],201); }
  public function show(Department $department): JsonResponse { return response()->json(['data'=>$department->load('institution','courses','sections')]); }
  public function update(StoreDepartmentRequest $request, Department $department): JsonResponse { $department->update($request->validated()); return response()->json(['data'=>$department->fresh()->load('institution')]); }
- public function destroy(Department $department): JsonResponse { $department->delete(); return response()->json(null,204); }
+ public function destroy(Department $department): JsonResponse { abort_unless(request()->user()?->role === 'admin', 403); $department->delete(); return response()->json(null,204); }
 }
