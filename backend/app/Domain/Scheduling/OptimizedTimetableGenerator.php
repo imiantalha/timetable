@@ -6,6 +6,7 @@ namespace App\Domain\Scheduling;
 
 use App\Models\Timetable;
 use App\Models\TimetableEntry;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 final class OptimizedTimetableGenerator
@@ -28,7 +29,10 @@ final class OptimizedTimetableGenerator
             $placed = false;
 
             foreach ($slots as $slot) {
+                $slotDuration = Carbon::parse($slot->starts_at)->diffInMinutes(Carbon::parse($slot->ends_at));
+
                 if ($slot->is_break
+                    || $slotDuration < $assignment->duration_minutes
                     || ! $this->availability->teacherAvailable($assignment->teacher_id, $slot)
                     || ! $this->availability->roomAvailable($assignment->room_id, $slot)) {
                     continue;
@@ -59,7 +63,7 @@ final class OptimizedTimetableGenerator
                 $unplaced->push([
                     'course_id' => $assignment->course_id,
                     'session_number' => $assignment->session_number,
-                    'message' => 'No valid slot satisfies the hard constraints.',
+                    'message' => 'No valid slot satisfies the hard constraints and required duration.',
                 ]);
             }
         }
