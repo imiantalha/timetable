@@ -61,6 +61,7 @@ return new class extends Migration {
             $table->foreignId('time_slot_id')->constrained()->restrictOnDelete();
             $table->unsignedSmallInteger('session_number')->default(1);
             $table->timestamps();
+            $table->unique(['timetable_id', 'course_id', 'session_number']);
             $table->index(['timetable_id', 'time_slot_id']);
             $table->index(['teacher_id', 'time_slot_id']);
             $table->index(['section_id', 'time_slot_id']);

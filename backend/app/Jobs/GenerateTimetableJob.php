@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Domain\Scheduling\AvailabilityConstraint;
-use App\Domain\Scheduling\ConflictDetector;
 use App\Domain\Scheduling\OptimizedTimetableGenerator;
-use App\Domain\Scheduling\ScheduleScorer;
 use App\Models\Timetable;
 use App\Models\TimeSlot;
 use Illuminate\Bus\Queueable;
@@ -15,8 +12,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 final class GenerateTimetableJob implements ShouldQueue
 {
@@ -32,14 +29,46 @@ final class GenerateTimetableJob implements ShouldQueue
     public function handle(OptimizedTimetableGenerator $generator): void
     {
         Cache::put("timetable-generation:{$this->generationId}", ['status' => 'running'], now()->addHour());
-        $timetable = Timetable::findOrFail($this->timetableId);
-        $slots = TimeSlot::query()->whereIn('id', $this->timeSlotIds)->orderBy('day_of_week')->orderBy('starts_at')->get();
-        $result = $generator->generate($timetable, collect($this->assignments)->map(fn (array $item) => (object) $item), $slots);
-        Cache::put("timetable-generation:{$this->generationId}", ['status' => 'completed', 'created_count' => $result['entries']->count(), 'unplaced_count' => $result['unplaced']->count(), 'score' => $result['score']], now()->addHour());
+
+        $result = DB::transaction(function () use ($generator): array {
+            $timetable = Timetable::query()->whereKey($this->timetableId)->lockForUpdate()->firstOrFail();
+
+            if ($timetable->status !== 'draft') {
+                throw new \Symfony\Component\HttpKernel\Exception\ConflictHttpException('Only draft timetables can be generated.');
+            }
+
+            if ($timetable->entries()->exists()) {
+                throw new \Symfony\Component\HttpKernel\Exception\ConflictHttpException('This timetable already contains entries. Clear the draft before generating it again.');
+            }
+
+            $slots = TimeSlot::query()
+                ->where('institution_id', $timetable->institution_id)
+                ->whereIn('id', $this->timeSlotIds)
+                ->where('is_break', false)
+                ->orderBy('day_of_week')
+                ->orderBy('starts_at')
+                ->get();
+
+            return $generator->generate(
+                $timetable,
+                collect($this->assignments)->map(fn (array $item) => (object) $item),
+                $slots,
+            );
+        });
+
+        Cache::put("timetable-generation:{$this->generationId}", [
+            'status' => 'completed',
+            'created_count' => $result['created_count'],
+            'unplaced_count' => $result['unplaced']->count(),
+            'score' => $result['score'],
+        ], now()->addHour());
     }
 
     public function failed(\Throwable $exception): void
     {
-        Cache::put("timetable-generation:{$this->generationId}", ['status' => 'failed', 'message' => $exception->getMessage()], now()->addHour());
+        Cache::put("timetable-generation:{$this->generationId}", [
+            'status' => 'failed',
+            'message' => $exception->getMessage(),
+        ], now()->addHour());
     }
 }

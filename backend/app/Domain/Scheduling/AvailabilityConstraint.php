@@ -12,8 +12,13 @@ final class AvailabilityConstraint
 {
     public function teacherAvailable(int $teacherId, TimeSlot $slot): bool
     {
-        return TeacherAvailability::query()
-            ->where('teacher_id', $teacherId)
+        $availability = TeacherAvailability::query()->where('teacher_id', $teacherId);
+
+        if (! (clone $availability)->exists()) {
+            return true;
+        }
+
+        return $availability
             ->where('day_of_week', $slot->day_of_week)
             ->where('is_available', true)
             ->where('starts_at', '<=', $slot->starts_at)
@@ -23,8 +28,13 @@ final class AvailabilityConstraint
 
     public function roomAvailable(int $roomId, TimeSlot $slot): bool
     {
-        return RoomAvailability::query()
-            ->where('room_id', $roomId)
+        $availability = RoomAvailability::query()->where('room_id', $roomId);
+
+        if (! (clone $availability)->exists()) {
+            return true;
+        }
+
+        return $availability
             ->where('day_of_week', $slot->day_of_week)
             ->where('is_available', true)
             ->where('starts_at', '<=', $slot->starts_at)

@@ -34,7 +34,9 @@ type ResourcePayload = {
 };
 
 async function getOptions(resource: string, params: Record<string, number | undefined> = {}) {
-  const response = await api.get<ResourcePayload | Record<string, unknown>[]>(`/${resource}`, { params });
+  const response = await api.get<ResourcePayload | Record<string, unknown>[]>(`/${resource}`, {
+    params: { per_page: 100, ...params },
+  });
   const payload = response.data;
   const wrapped = payload as ResourcePayload;
   const items: Record<string, unknown>[] = Array.isArray(payload)
@@ -44,7 +46,7 @@ async function getOptions(resource: string, params: Record<string, number | unde
       : wrapped.data?.data ?? [];
 
   return items
-    .filter((item) => typeof item.id === 'number')
+    .filter((item) => typeof item.id === 'number' && item.is_active !== false && !(resource === 'time-slots' && item.is_break === true))
     .map((item) => {
       const fullName = [item.first_name, item.last_name].filter(Boolean).join(' ');
       const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -67,6 +69,27 @@ export const getCourses = (departmentId?: number) => getOptions('courses', { dep
 export const getTeachers = (departmentId?: number) => getOptions('teachers', { department_id: departmentId });
 export const getRooms = () => getOptions('rooms');
 export const getTimeSlots = () => getOptions('time-slots');
+
+export type TimetableOption = { id: number; name: string; status: 'draft' | 'published'; institution_id: number };
+export type ScheduleSlot = { id: number; day_of_week: number; starts_at: string; ends_at: string; is_break: boolean };
+
+export async function getTimetables(): Promise<TimetableOption[]> {
+  const { data } = await api.get<{ data?: TimetableOption[] | { data?: TimetableOption[] } }>('/timetables', {
+    params: { per_page: 100 },
+  });
+  const payload = data.data;
+  if (Array.isArray(payload)) return payload;
+  return payload?.data ?? [];
+}
+
+export async function getScheduleSlots(institutionId: number): Promise<ScheduleSlot[]> {
+  const { data } = await api.get<{ data?: ScheduleSlot[] | { data?: ScheduleSlot[] } }>('/time-slots', {
+    params: { institution_id: institutionId, per_page: 100 },
+  });
+  const payload = data.data;
+  const items = Array.isArray(payload) ? payload : payload?.data ?? [];
+  return items.filter((slot) => !slot.is_break);
+}
 
 export async function getTimetableEntries(timetableId: number): Promise<TimetableEntry[]> {
   const { data } = await api.get<{ data?: TimetableEntry[] | { data?: TimetableEntry[] } }>('/timetable-entries', {

@@ -15,7 +15,9 @@ class CourseController extends Controller
     public function index(Request $request): JsonResponse
     {
         $courses = Course::query()
+            ->when($request->user()?->institution_id, fn ($query, $id) => $query->whereHas('department', fn ($department) => $department->where('institution_id', $id)))
             ->with('department:id,name,code')
+            ->when($request->filled('department_id'), fn ($query) => $query->where('department_id', $request->integer('department_id')))
             ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();
                 $query->where(fn ($q) => $q->where('name', 'ilike', "%{$search}%")
@@ -46,6 +48,7 @@ class CourseController extends Controller
 
     public function destroy(Course $course): JsonResponse
     {
+        abort_unless(request()->user()?->role === 'admin', 403);
         $course->delete();
         return response()->json(null, 204);
     }

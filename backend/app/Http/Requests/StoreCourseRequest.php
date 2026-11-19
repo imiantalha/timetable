@@ -4,11 +4,25 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Models\Department;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreCourseRequest extends FormRequest
 {
-    public function authorize(): bool { return $this->user()?->role === 'admin'; }
+    public function authorize(): bool
+    {
+        $user = $this->user();
+        if ($user?->role !== 'admin') {
+            return false;
+        }
+
+        $departmentId = $this->input('department_id');
+        $department = $departmentId === null ? null : Department::find($departmentId);
+
+        return $department === null
+            || $user->institution_id === null
+            || (int) $department->institution_id === (int) $user->institution_id;
+    }
 
     public function rules(): array
     {
