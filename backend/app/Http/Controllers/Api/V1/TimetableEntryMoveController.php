@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Scheduling\AvailabilityConstraint;
 use App\Domain\Scheduling\ConflictDetector;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MoveTimetableEntryRequest;
@@ -18,7 +19,10 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 final class TimetableEntryMoveController extends Controller
 {
-    public function __construct(private readonly ConflictDetector $detector) {}
+    public function __construct(
+        private readonly ConflictDetector $detector,
+        private readonly AvailabilityConstraint $availability,
+    ) {}
 
     public function __invoke(MoveTimetableEntryRequest $request, TimetableEntry $timetableEntry): JsonResponse
     {
@@ -46,6 +50,15 @@ final class TimetableEntryMoveController extends Controller
             if ($slotDuration < (int) $timetableEntry->course->duration_minutes) {
                 throw ValidationException::withMessages([
                     'time_slot_id' => ['The selected time slot is shorter than the course duration.'],
+                ]);
+            }
+
+            $timetableEntry->loadMissing(['teacher', 'room']);
+
+            if (! $this->availability->teacherAvailable($timetableEntry->teacher_id, $slot)
+                || ! $this->availability->roomAvailable($timetableEntry->room_id, $slot)) {
+                throw ValidationException::withMessages([
+                    'time_slot_id' => ['The assigned teacher or room is unavailable during this time slot.'],
                 ]);
             }
 
