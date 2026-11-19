@@ -31,8 +31,18 @@ final class GenerateTimetableJob implements ShouldQueue
         Cache::put("timetable-generation:{$this->generationId}", ['status' => 'running'], now()->addHour());
 
         $result = DB::transaction(function () use ($generator): array {
-            $timetable = Timetable::findOrFail($this->timetableId);
+            $timetable = Timetable::query()->whereKey($this->timetableId)->lockForUpdate()->firstOrFail();
+
+            if ($timetable->status !== 'draft') {
+                throw new \\Symfony\\Component\\HttpKernel\\Exception\\ConflictHttpException('Only draft timetables can be generated.');
+            }
+
+            if ($timetable->entries()->exists()) {
+                throw new \\Symfony\\Component\\HttpKernel\\Exception\\ConflictHttpException('This timetable already contains entries. Clear the draft before generating it again.');
+            }
+
             $slots = TimeSlot::query()
+                ->where('institution_id', $timetable->institution_id)
                 ->whereIn('id', $this->timeSlotIds)
                 ->where('is_break', false)
                 ->orderBy('day_of_week')
