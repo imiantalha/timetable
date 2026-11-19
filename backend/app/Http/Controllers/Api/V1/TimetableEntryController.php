@@ -47,6 +47,7 @@ final class TimetableEntryController extends Controller
 
     public function destroy(TimetableEntry $timetableEntry): JsonResponse
     {
+        abort_unless(request()->user()?->role === 'admin', 403);
         $timetableEntry->delete();
         return response()->json(null, 204);
     }
