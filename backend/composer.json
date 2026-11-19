@@ -30,7 +30,7 @@
     "test": "php artisan test",
     "lint": "vendor/bin/pint --test",
     "post-autoload-dump": [
-      "Illuminate\\\\Foundation\\\\ComposerScripts::postAutoloadDump",
+      "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
       "@php artisan package:discover --ansi"
     ],
     "post-update-cmd": [
