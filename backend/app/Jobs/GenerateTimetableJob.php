@@ -34,11 +34,11 @@ final class GenerateTimetableJob implements ShouldQueue
             $timetable = Timetable::query()->whereKey($this->timetableId)->lockForUpdate()->firstOrFail();
 
             if ($timetable->status !== 'draft') {
-                throw new \\Symfony\\Component\\HttpKernel\\Exception\\ConflictHttpException('Only draft timetables can be generated.');
+                throw new \Symfony\Component\HttpKernel\Exception\ConflictHttpException('Only draft timetables can be generated.');
             }
 
             if ($timetable->entries()->exists()) {
-                throw new \\Symfony\\Component\\HttpKernel\\Exception\\ConflictHttpException('This timetable already contains entries. Clear the draft before generating it again.');
+                throw new \Symfony\Component\HttpKernel\Exception\ConflictHttpException('This timetable already contains entries. Clear the draft before generating it again.');
             }
 
             $slots = TimeSlot::query()
