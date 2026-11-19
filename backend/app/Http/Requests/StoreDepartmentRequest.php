@@ -13,7 +13,7 @@ class StoreDepartmentRequest extends FormRequest
         $user = $this->user();
 
         return $user?->role === 'admin'
-            && ($user->institution_id === null || (int) $this->input('institution_id') === (int) $user->institution_id);
+            && ($this->input('institution_id') === null || $user->institution_id === null || (int) $this->input('institution_id') === (int) $user->institution_id);
     }
 
     public function rules(): array
