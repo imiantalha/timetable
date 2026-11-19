@@ -6,6 +6,7 @@ namespace App\Domain\Scheduling;
 
 use App\Models\Timetable;
 use App\Models\TimetableEntry;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 final class TimetableGenerator
@@ -24,7 +25,7 @@ final class TimetableGenerator
             $placed = false;
 
             foreach ($slots as $slot) {
-                if ($slot->is_break) {
+                if ($slot->is_break || $this->slotDuration($slot) < $assignment->duration_minutes) {
                     continue;
                 }
 
@@ -38,7 +39,8 @@ final class TimetableGenerator
                     'session_number' => $assignment->session_number,
                 ]);
                 $entry->setRelation('timetable', $timetable);
-                $entry->load(['teacher', 'section', 'room', 'timeSlot']);
+                $entry->setRelation('timeSlot', $slot);
+                $entry->load(['teacher', 'section', 'room']);
 
                 if ($this->conflictDetector->detect($entry)->isEmpty()) {
                     $entry->save();
@@ -53,12 +55,16 @@ final class TimetableGenerator
                     'course_id' => $assignment->course_id,
                     'session_number' => $assignment->session_number,
                     'teacher_id' => $assignment->teacher_id,
-                    'section_id' => $assignment->section_id,
-                    'message' => 'No conflict-free time slot was found.',
+                    'message' => 'No conflict-free time slot with sufficient duration was found.',
                 ]);
             }
         }
 
         return ['created' => $created, 'unplaced' => $unplaced];
+    }
+
+    private function slotDuration(object $slot): int
+    {
+        return (int) Carbon::parse($slot->starts_at)->diffInMinutes(Carbon::parse($slot->ends_at));
     }
 }
