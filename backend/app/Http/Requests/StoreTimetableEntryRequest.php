@@ -12,11 +12,16 @@ final class StoreTimetableEntryRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
-        $timetable = Timetable::find($this->input('timetable_id'));
+        if ($user?->role !== 'admin') {
+            return false;
+        }
 
-        return $user?->role === 'admin'
-            && $timetable !== null
-            && ($user->institution_id === null || (int) $timetable->institution_id === (int) $user->institution_id);
+        $timetableId = $this->input('timetable_id');
+        $timetable = $timetableId === null ? null : Timetable::find($timetableId);
+
+        return $timetable === null
+            || $user->institution_id === null
+            || (int) $timetable->institution_id === (int) $user->institution_id;
     }
 
     public function rules(): array
