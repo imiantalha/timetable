@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import TimetableGrid, { type GridSlot } from './TimetableGrid';
 import GenerationPanel from './GenerationPanel';
-import { checkEntryConflicts, getTimetableEntries, moveTimetableEntry, publishTimetable, type TimetableEntry } from '../../../lib/timetable-api';
+import {
+  checkEntryConflicts,
+  getTimetableEntries,
+  getTimetables,
+  moveTimetableEntry,
+  publishTimetable,
+  type TimetableEntry,
+  type TimetableOption,
+} from '../../../lib/timetable-api';
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const fallbackSlots: GridSlot[] = [
@@ -16,6 +24,8 @@ const fallbackSlots: GridSlot[] = [
 ];
 
 export default function TimetablesPage() {
+  const [timetables, setTimetables] = useState<TimetableOption[]>([]);
+  const [timetableId, setTimetableId] = useState<number | null>(null);
   const [entries, setEntries] = useState<TimetableEntry[]>([]);
   const [selected, setSelected] = useState<TimetableEntry | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,24 +33,73 @@ export default function TimetablesPage() {
   const [error, setError] = useState('');
   const [published, setPublished] = useState(false);
 
-  const refreshEntries = useCallback(async () => {
-    setEntries(await getTimetableEntries(1));
+  const refreshEntries = useCallback(async (id: number) => {
+    setEntries(await getTimetableEntries(id));
   }, []);
 
   useEffect(() => {
-    refreshEntries()
-      .catch(() => setError('Unable to load timetable. Check the API URL and authentication.'))
-      .finally(() => setLoading(false));
-  }, [refreshEntries]);
+    let active = true;
+
+    getTimetables()
+      .then((items) => {
+        if (!active) return;
+        setTimetables(items);
+        if (items.length > 0) {
+          setTimetableId(items[0].id);
+          setPublished(items[0].status === 'published');
+        }
+      })
+      .catch(() => setError('Unable to load timetables. Check the API URL and authentication.'))
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (timetableId === null) return;
+
+    let active = true;
+    setLoading(true);
+    setEntries([]);
+    setSelected(null);
+    setError('');
+
+    getTimetableEntries(timetableId)
+      .then((items) => {
+        if (active) setEntries(items);
+      })
+      .catch(() => {
+        if (active) setError('Unable to load entries for this timetable.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [timetableId]);
+
+  const currentTimetable = timetables.find((item) => item.id === timetableId) ?? null;
 
   const slots = useMemo<GridSlot[]>(
     () =>
       entries.length
         ? Array.from(new Map(entries.map((entry) => [entry.timeSlot.id, entry.timeSlot])).values())
-            .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+            .sort((a, b) => a.day_of_week - b.day_of_week || a.starts_at.localeCompare(b.starts_at))
         : fallbackSlots,
     [entries],
   );
+
+  function selectTimetable(id: number) {
+    const next = timetables.find((item) => item.id === id);
+    setTimetableId(id);
+    setPublished(next?.status === 'published');
+  }
 
   async function moveEntry(entry: TimetableEntry, target: GridSlot) {
     const previous = entry.timeSlot;
@@ -56,15 +115,24 @@ export default function TimetablesPage() {
       const saved = await moveTimetableEntry(entry.id, target.id);
       setEntries((current) => current.map((item) => item.id === entry.id ? saved : item));
       setSelected((current) => current?.id === entry.id ? saved : current);
-    } catch (exception: any) {
+    } catch (exception: unknown) {
       setEntries((current) =>
         current.map((item) => item.id === entry.id ? { ...item, timeSlot: previous } : item),
       );
-      setError(
-        exception?.response?.data?.message ??
-        exception?.response?.data?.errors?.schedule?.[0]?.message ??
-        'This class cannot be moved to the selected slot.',
-      );
+
+      const response = typeof exception === 'object' && exception !== null && 'response' in exception
+        ? exception.response
+        : null;
+      const responseData = typeof response === 'object' && response !== null && 'data' in response
+        ? response.data
+        : null;
+      const responseMessage = typeof responseData === 'object' && responseData !== null && 'message' in responseData
+        ? responseData.message
+        : null;
+
+      setError(typeof responseMessage === 'string'
+        ? responseMessage
+        : 'This class cannot be moved to the selected slot.');
     } finally {
       setSavingId(null);
     }
@@ -81,13 +149,43 @@ export default function TimetablesPage() {
   }
 
   async function publish() {
+    if (timetableId === null) return;
+
     try {
-      await publishTimetable(1);
+      await publishTimetable(timetableId);
       setPublished(true);
+      setTimetables((current) => current.map((item) =>
+        item.id === timetableId ? { ...item, status: 'published' } : item,
+      ));
       setError('');
     } catch {
-      setError('Unable to publish timetable.');
+      setError('Unable to publish timetable. Make sure it contains valid entries.');
     }
+  }
+
+  if (loading && timetables.length === 0) {
+    return (
+      <main className="min-h-screen p-6 lg:p-10">
+        <div className="mx-auto max-w-[1500px] rounded-2xl border border-slate-800 bg-slate-900 p-12 text-center text-sm text-slate-400">
+          Loading timetables…
+        </div>
+      </main>
+    );
+  }
+
+  if (timetableId === null) {
+    return (
+      <main className="min-h-screen p-6 lg:p-10">
+        <div className="mx-auto max-w-[900px] rounded-2xl border border-slate-800 bg-slate-900 p-8">
+          <p className="text-sm font-medium text-cyan-400">TIMETABLE BUILDER</p>
+          <h1 className="mt-2 text-2xl font-bold">No timetables found</h1>
+          <p className="mt-2 text-sm text-slate-400">
+            Create a draft timetable through the API, then return here to generate and manage its schedule.
+          </p>
+          {error && <p role="alert" className="mt-4 text-sm text-red-300">{error}</p>}
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -96,21 +194,40 @@ export default function TimetablesPage() {
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-medium text-cyan-400">TIMETABLE BUILDER</p>
-            <h1 className="mt-1 text-3xl font-bold">Fall 2026 · BS Computer Science</h1>
+            <h1 className="mt-1 text-3xl font-bold">{currentTimetable?.name ?? 'Timetable'}</h1>
             <p className="mt-2 text-sm text-slate-400">
               {published ? 'Published schedule' : 'Draft schedule'} · {savingId ? 'Saving change…' : 'Drag classes to reschedule'}
             </p>
           </div>
-          <button
-            onClick={publish}
-            disabled={published || savingId !== null}
-            className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
-          >
-            {published ? 'Published' : 'Publish'}
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <label className="text-xs text-slate-400">
+              Select timetable
+              <select
+                value={timetableId}
+                onChange={(event) => selectTimetable(Number(event.target.value))}
+                className="mt-1 block min-w-56 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white"
+              >
+                {timetables.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </select>
+            </label>
+            <button
+              onClick={publish}
+              disabled={published || savingId !== null || entries.length === 0}
+              className="self-end rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
+            >
+              {published ? 'Published' : 'Publish'}
+            </button>
+          </div>
         </div>
 
-        <GenerationPanel timetableId={1} onGenerated={refreshEntries} />
+        {!published && (
+          <GenerationPanel
+            timetableId={timetableId}
+            onGenerated={() => refreshEntries(timetableId)}
+          />
+        )}
 
         {error && (
           <div role="alert" className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
