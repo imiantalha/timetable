@@ -12,5 +12,5 @@ class RoomController extends Controller {
  public function store(StoreRoomRequest $request): JsonResponse { return response()->json(['data'=>Room::create($request->validated())],201); }
  public function show(Room $room): JsonResponse { return response()->json(['data'=>$room->load('institution','availabilities')]); }
  public function update(StoreRoomRequest $request, Room $room): JsonResponse { $room->update($request->validated()); return response()->json(['data'=>$room->fresh()]); }
- public function destroy(Room $room): JsonResponse { $room->delete(); return response()->json(null,204); }
+ public function destroy(Room $room): JsonResponse { abort_unless(request()->user()?->role === 'admin', 403); $room->delete(); return response()->json(null,204); }
 }
