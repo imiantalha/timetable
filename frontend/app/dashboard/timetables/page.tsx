@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import TimetableGrid, { type GridSlot } from './TimetableGrid';
 import GenerationPanel from './GenerationPanel';
 import {
   checkEntryConflicts,
   getTimetableEntries,
   getTimetables,
+  getScheduleSlots,
   moveTimetableEntry,
   publishTimetable,
   type TimetableEntry,
@@ -14,19 +15,12 @@ import {
 } from '../../../lib/timetable-api';
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-const fallbackSlots: GridSlot[] = [
-  { id: 1, starts_at: '08:00', ends_at: '09:00', day_of_week: 0 },
-  { id: 2, starts_at: '09:00', ends_at: '10:00', day_of_week: 0 },
-  { id: 3, starts_at: '10:00', ends_at: '11:00', day_of_week: 0 },
-  { id: 4, starts_at: '11:00', ends_at: '12:00', day_of_week: 0 },
-  { id: 5, starts_at: '12:00', ends_at: '13:00', day_of_week: 0 },
-  { id: 6, starts_at: '13:00', ends_at: '14:00', day_of_week: 0 },
-];
 
 export default function TimetablesPage() {
   const [timetables, setTimetables] = useState<TimetableOption[]>([]);
   const [timetableId, setTimetableId] = useState<number | null>(null);
   const [entries, setEntries] = useState<TimetableEntry[]>([]);
+  const [slots, setSlots] = useState<GridSlot[]>([]);
   const [selected, setSelected] = useState<TimetableEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<number | null>(null);
@@ -59,21 +53,30 @@ export default function TimetablesPage() {
     };
   }, []);
 
+  const currentTimetable = timetables.find((item) => item.id === timetableId) ?? null;
+  const institutionId = currentTimetable?.institution_id ?? null;
+
   useEffect(() => {
-    if (timetableId === null) return;
+    if (timetableId === null || institutionId === null) return;
 
     let active = true;
     setLoading(true);
     setEntries([]);
+    setSlots([]);
     setSelected(null);
     setError('');
 
-    getTimetableEntries(timetableId)
-      .then((items) => {
-        if (active) setEntries(items);
+    Promise.all([
+      getTimetableEntries(timetableId),
+      getScheduleSlots(institutionId),
+    ])
+      .then(([items, scheduleSlots]) => {
+        if (!active) return;
+        setEntries(items);
+        setSlots(scheduleSlots);
       })
       .catch(() => {
-        if (active) setError('Unable to load entries for this timetable.');
+        if (active) setError('Unable to load the timetable or its available time slots.');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -82,18 +85,7 @@ export default function TimetablesPage() {
     return () => {
       active = false;
     };
-  }, [timetableId]);
-
-  const currentTimetable = timetables.find((item) => item.id === timetableId) ?? null;
-
-  const slots = useMemo<GridSlot[]>(
-    () =>
-      entries.length
-        ? Array.from(new Map(entries.map((entry) => [entry.timeSlot.id, entry.timeSlot])).values())
-            .sort((a, b) => a.day_of_week - b.day_of_week || a.starts_at.localeCompare(b.starts_at))
-        : fallbackSlots,
-    [entries],
-  );
+  }, [timetableId, institutionId]);
 
   function selectTimetable(id: number) {
     const next = timetables.find((item) => item.id === id);
