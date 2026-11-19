@@ -32,6 +32,7 @@ final class TimetableEntryController extends Controller
     public function index(Request $request): JsonResponse
     {
         $entries = TimetableEntry::query()
+            ->whereHas('timetable', fn ($query) => $query->when($request->user()?->institution_id, fn ($builder, $id) => $builder->where('institution_id', $id)))
             ->where('timetable_id', $request->integer('timetable_id'))
             ->with(['course:id,name,code', 'teacher:id,first_name,last_name', 'section:id,name,code', 'room:id,name,code', 'timeSlot:id,day_of_week,starts_at,ends_at'])
             ->orderBy('time_slot_id')
