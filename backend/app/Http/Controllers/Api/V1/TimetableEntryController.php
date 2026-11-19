@@ -16,6 +16,7 @@ use App\Models\Timetable;
 use App\Models\TimetableEntry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -58,9 +59,17 @@ final class TimetableEntryController extends Controller
                 && (int) $course->department->institution_id === (int) $timetable->institution_id
                 && (int) $section->department->institution_id === (int) $timetable->institution_id;
 
-            if (! $sameInstitution || $course->department_id !== $section->department_id || $slot->is_break) {
+            if (! $sameInstitution || (int) $course->department_id !== (int) $section->department_id || $slot->is_break) {
                 throw ValidationException::withMessages([
                     'schedule' => ['The selected course, section, teacher, room and time slot must be compatible with this timetable.'],
+                ]);
+            }
+
+            $slotDuration = Carbon::parse($slot->starts_at)->diffInMinutes(Carbon::parse($slot->ends_at));
+
+            if ($slotDuration < (int) $course->duration_minutes) {
+                throw ValidationException::withMessages([
+                    'time_slot_id' => ['The selected time slot is shorter than the course duration.'],
                 ]);
             }
 
