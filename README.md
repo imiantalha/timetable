@@ -1,106 +1,104 @@
 # Smart Timetable
 
-A university timetable planner. A **Laravel 13 REST API** models departments, courses, teachers, rooms, sections and time slots, generates timetables in a queued job using constraint checks and schedule scoring, and detects clashes. A **Next.js 16** admin dashboard lets you configure generation and adjust the result with drag and drop.
-
-<!-- Add a screenshot or GIF of the timetable builder here: ![Timetable builder](docs/screenshot.png) -->
+A university timetable planner built with a Laravel 13 REST API and a Next.js 16 dashboard. It manages academic resources, generates draft schedules, detects conflicts and supports drag-and-drop rescheduling.
 
 ## Features
 
-- **Timetable generation:** `TimetableGenerator` and `OptimizedTimetableGenerator` build schedules from a generation plan; `ScheduleScorer` ranks the candidates
-- **Constraints and conflicts:** `AvailabilityConstraint` and `ConflictDetector` catch teacher, room and section clashes; any entry can be checked through the API
-- **Background processing:** generation runs in a queued `GenerateTimetableJob`, keeping API requests fast
-- **Drag-and-drop editing:** move entries in the builder grid; moves go through a dedicated `PATCH /move` endpoint
-- **Publishing:** timetables are drafted, then published
-- **Academic resources:** full CRUD for departments, courses, teachers, rooms, sections and time slots
-- **Typed frontend:** the Next.js dashboard talks to the API through a typed TypeScript client
+- **Academic resources:** departments, courses, teachers, rooms, sections and time slots
+- **Timetable generation:** expands each course into its configured weekly sessions and places sessions into compatible time slots
+- **Hard constraints:** teacher, room and section conflicts, room capacity, resource availability, break periods and course duration
+- **Draft lifecycle:** generate and edit draft timetables, then publish them
+- **Authentication:** Sanctum bearer-token login, current-user and logout endpoints
+- **Frontend builder:** select a timetable, configure generation, view the actual institution time slots and drag entries to valid day-specific slots
+
+The API generation endpoint currently runs synchronously. A separate queued generator/job implementation is present, but is not yet exposed through an asynchronous API workflow.
 
 ## Tech stack
 
 | Area | Technology |
 |---|---|
-| Backend | PHP 8.3+, Laravel 13, Sanctum, queued jobs |
-| Frontend | Next.js 16 (App Router), React 19, TypeScript 5 |
-| API | Versioned REST under `/api/v1` |
+| Backend | PHP 8.3+, Laravel 13, Sanctum |
+| Database | PostgreSQL |
+| Frontend | Next.js 16, React 19, TypeScript 5, Tailwind CSS 4 |
+| API | REST under /api/v1 |
 
-## Architecture
+## Project structure
 
-```
-┌────────────────────────────────────┐
-│ Next.js admin dashboard            │
-│ Generation config · Builder grid   │
-│ Drag & drop · Typed API client     │
-└─────────────────┬──────────────────┘
-                  │ HTTP / JSON
-                  ▼
-┌────────────────────────────────────┐
-│ Laravel 13 API (/api/v1, Sanctum)  │
-│ Resource controllers · Validation  │
-├────────────────────────────────────┤
-│ Domain/Scheduling                  │
-│ Generator · Scorer · Constraints   │
-│ ConflictDetector                   │
-├────────────────────────────────────┤
-│ GenerateTimetableJob (queue)       │
-└────────────────────────────────────┘
-```
-
-Scheduling logic lives in [`backend/app/Domain/Scheduling`](backend/app/Domain/Scheduling), separate from the HTTP layer. More detail in [docs/architecture.md](docs/architecture.md).
-
-```
+~~~text
 .
-├── backend/    # Laravel API and scheduling domain
+├── backend/    # Laravel API, models, migrations and scheduling domain
 ├── frontend/   # Next.js admin dashboard
-└── docs/       # Architecture notes
-```
+└── docs/       # Architecture and database notes
+~~~
+
+Scheduling logic lives in backend/app/Domain/Scheduling, separate from HTTP controllers.
 
 ## API
 
-All routes are under `/api/v1`. Everything except `GET /health` requires Sanctum authentication.
+All endpoints are under /api/v1.
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `GET` | `/health` | Health check |
-| CRUD | `/courses`, `/departments`, `/rooms`, `/teachers`, `/sections`, `/time-slots` | Academic resources |
-| `GET` `POST` | `/timetables`, `/timetables/{id}` | List, create and view timetables |
-| `POST` | `/timetables/{id}/generate` | Queue timetable generation |
-| `POST` | `/timetables/{id}/publish` | Publish a timetable |
-| `GET` `POST` `DELETE` | `/timetable-entries` | Manage entries |
-| `PATCH` | `/timetable-entries/{id}/move` | Move an entry (drag and drop) |
-| `GET` | `/timetable-entries/{id}/conflicts` | Check an entry for clashes |
-
-Full definitions in [`backend/routes/api.php`](backend/routes/api.php).
+| Method | Endpoint | Purpose | Auth |
+|---|---|---|---|
+| GET | /health | Health check | Public |
+| POST | /login | Create a Sanctum token | Public, rate limited |
+| GET | /me | Current authenticated user | Required |
+| POST | /logout | Revoke current token | Required |
+| CRUD | /courses, /departments, /rooms, /teachers, /sections, /time-slots | Manage academic resources | Required |
+| GET / POST | /timetables | List and create timetables | Required |
+| GET | /timetables/{id} | View a timetable | Required |
+| POST | /timetables/{id}/generate | Generate a draft timetable | Admin |
+| POST | /timetables/{id}/publish | Publish a draft timetable | Admin |
+| GET / POST / DELETE | /timetable-entries | List, create and delete entries | Required / Admin for writes |
+| PATCH | /timetable-entries/{id}/move | Move an entry to a valid slot | Admin |
+| GET | /timetable-entries/{id}/conflicts | Check entry conflicts | Required |
 
 ## Getting started
 
-**Backend**
+### Backend
 
-```bash
+~~~bash
 cd backend
 composer install
-# Create backend/.env with APP_KEY, your DB_* settings and a QUEUE_CONNECTION
+cp .env.example .env
+# Set DB_HOST, DB_DATABASE, DB_USERNAME and DB_PASSWORD for PostgreSQL.
 php artisan key:generate
 php artisan migrate
 php artisan serve
-php artisan queue:work   # in a second terminal, for timetable generation
-```
+~~~
 
-**Frontend**
+The current generation endpoint runs synchronously, so a queue worker is not required for the dashboard flow.
 
-```bash
+### Frontend
+
+~~~bash
 cd frontend
-cp .env.example .env.local   # NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+cp .env.example .env.local
 npm install
 npm run dev
-```
+~~~
+
+Set NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1 in frontend/.env.local.
+
+### Validation
+
+~~~bash
+cd backend
+php artisan test
+composer lint
+
+cd ../frontend
+npm run lint
+npm run build
+~~~
 
 ## Roadmap
 
-- Automated tests and CI
-- Conflict explanations shown in the builder
-- Version history for published timetables
+- Asynchronous generation API and job-status endpoint
+- Automated scheduling-domain tests and CI
+- Timetable creation and login screens in the dashboard
+- Conflict explanations and version history
 - Calendar export
 
 ## Author
 
-**Muhammad Talha**, backend engineer (Laravel / PHP)
-[Portfolio](https://imiantalha.vercel.app) · [LinkedIn](https://www.linkedin.com/in/imiantalha) · [GitHub](https://github.com/imiantalha)
+**Muhammad Talha** · [Portfolio](https://imiantalha.vercel.app) · [LinkedIn](https://www.linkedin.com/in/imiantalha) · [GitHub](https://github.com/imiantalha)
