@@ -70,6 +70,17 @@ export const getTeachers = () => getOptions('teachers');
 export const getRooms = () => getOptions('rooms');
 export const getTimeSlots = () => getOptions('time-slots');
 
+export type TimetableOption = { id: number; name: string; status: 'draft' | 'published' };
+
+export async function getTimetables(): Promise<TimetableOption[]> {
+  const { data } = await api.get<{ data?: TimetableOption[] | { data?: TimetableOption[] } }>('/timetables', {
+    params: { per_page: 100 },
+  });
+  const payload = data.data;
+  if (Array.isArray(payload)) return payload;
+  return payload?.data ?? [];
+}
+
 export async function getTimetableEntries(timetableId: number): Promise<TimetableEntry[]> {
   const { data } = await api.get<{ data?: TimetableEntry[] | { data?: TimetableEntry[] } }>('/timetable-entries', {
     params: { timetable_id: timetableId, per_page: 100 },
