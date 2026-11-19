@@ -11,6 +11,7 @@ use App\Models\TimeSlot;
 use App\Models\Timetable;
 use App\Models\TimetableEntry;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -22,6 +23,7 @@ final class TimetableEntryMoveController extends Controller
     public function __invoke(MoveTimetableEntryRequest $request, TimetableEntry $timetableEntry): JsonResponse
     {
         $slot = TimeSlot::findOrFail($request->integer('time_slot_id'));
+        $timetableEntry->loadMissing('course');
 
         return DB::transaction(function () use ($timetableEntry, $slot): JsonResponse {
             $timetable = Timetable::query()
@@ -36,6 +38,14 @@ final class TimetableEntryMoveController extends Controller
             if ((int) $slot->institution_id !== (int) $timetable->institution_id || $slot->is_break) {
                 throw ValidationException::withMessages([
                     'time_slot_id' => ['Choose a non-break time slot from the same institution.'],
+                ]);
+            }
+
+            $slotDuration = Carbon::parse($slot->starts_at)->diffInMinutes(Carbon::parse($slot->ends_at));
+
+            if ($slotDuration < (int) $timetableEntry->course->duration_minutes) {
+                throw ValidationException::withMessages([
+                    'time_slot_id' => ['The selected time slot is shorter than the course duration.'],
                 ]);
             }
 
