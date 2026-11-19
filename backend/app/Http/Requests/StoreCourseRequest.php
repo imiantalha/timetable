@@ -12,11 +12,16 @@ class StoreCourseRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
-        $department = Department::find($this->input('department_id'));
+        if ($user?->role !== 'admin') {
+            return false;
+        }
 
-        return $user?->role === 'admin'
-            && $department !== null
-            && ($user->institution_id === null || (int) $department->institution_id === (int) $user->institution_id);
+        $departmentId = $this->input('department_id');
+        $department = $departmentId === null ? null : Department::find($departmentId);
+
+        return $department === null
+            || $user->institution_id === null
+            || (int) $department->institution_id === (int) $user->institution_id;
     }
 
     public function rules(): array
