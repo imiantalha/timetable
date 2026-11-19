@@ -41,11 +41,14 @@ export default function TimetablesPage() {
         if (items.length > 0) {
           setTimetableId(items[0].id);
           setPublished(items[0].status === 'published');
+        } else {
+          setLoading(false);
         }
       })
-      .catch(() => setError('Unable to load timetables. Check the API URL and authentication.'))
-      .finally(() => {
-        if (active) setLoading(false);
+      .catch(() => {
+        if (!active) return;
+        setError('Unable to load timetables. Check the API URL and authentication.');
+        setLoading(false);
       });
 
     return () => {
@@ -60,11 +63,6 @@ export default function TimetablesPage() {
     if (timetableId === null || institutionId === null) return;
 
     let active = true;
-    setLoading(true);
-    setEntries([]);
-    setSlots([]);
-    setSelected(null);
-    setError('');
 
     Promise.all([
       getTimetableEntries(timetableId),
@@ -91,6 +89,11 @@ export default function TimetablesPage() {
     const next = timetables.find((item) => item.id === id);
     setTimetableId(id);
     setPublished(next?.status === 'published');
+    setLoading(true);
+    setEntries([]);
+    setSlots([]);
+    setSelected(null);
+    setError('');
   }
 
   async function moveEntry(entry: TimetableEntry, target: GridSlot) {
