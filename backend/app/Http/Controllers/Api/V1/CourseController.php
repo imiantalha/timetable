@@ -47,6 +47,7 @@ class CourseController extends Controller
 
     public function destroy(Course $course): JsonResponse
     {
+        abort_unless(request()->user()?->role === 'admin', 403);
         $course->delete();
         return response()->json(null, 204);
     }
