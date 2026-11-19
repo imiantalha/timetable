@@ -16,5 +16,5 @@ class TimeSlotController extends Controller
     public function store(StoreTimeSlotRequest $request): JsonResponse { return response()->json(['data'=>TimeSlot::create($request->validated())],201); }
     public function show(TimeSlot $timeSlot): JsonResponse { return response()->json(['data'=>$timeSlot->load('institution')]); }
     public function update(StoreTimeSlotRequest $request, TimeSlot $timeSlot): JsonResponse { $timeSlot->update($request->validated()); return response()->json(['data'=>$timeSlot->fresh()]); }
-    public function destroy(TimeSlot $timeSlot): JsonResponse { $timeSlot->delete(); return response()->json(null,204); }
+    public function destroy(TimeSlot $timeSlot): JsonResponse { abort_unless(request()->user()?->role === 'admin', 403); $timeSlot->delete(); return response()->json(null,204); }
 }
