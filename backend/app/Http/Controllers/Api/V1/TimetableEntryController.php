@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Scheduling\AvailabilityConstraint;
 use App\Domain\Scheduling\ConflictDetector;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTimetableEntryRequest;
@@ -23,7 +24,10 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 final class TimetableEntryController extends Controller
 {
-    public function __construct(private readonly ConflictDetector $detector) {}
+    public function __construct(
+        private readonly ConflictDetector $detector,
+        private readonly AvailabilityConstraint $availability,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -82,6 +86,13 @@ final class TimetableEntryController extends Controller
             if ($duplicate) {
                 throw ValidationException::withMessages([
                     'session_number' => ['This course session already exists in the timetable.'],
+                ]);
+            }
+
+            if (! $this->availability->teacherAvailable($teacher->id, $slot)
+                || ! $this->availability->roomAvailable($room->id, $slot)) {
+                throw ValidationException::withMessages([
+                    'schedule' => ['The selected teacher or room is unavailable during this time slot.'],
                 ]);
             }
 
