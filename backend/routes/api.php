@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Middleware\EnsureInstitutionAccess;
 use App\Http\Controllers\Api\V1\ConflictController;
 use App\Http\Controllers\Api\V1\CourseController;
 use App\Http\Controllers\Api\V1\DepartmentController;
@@ -20,7 +21,7 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/health', static fn () => response()->json(['status' => 'ok', 'service' => 'timetable-api']));
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
-    Route::middleware('auth:sanctum')->group(function (): void {
+    Route::middleware(['auth:sanctum', EnsureInstitutionAccess::class])->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
 
