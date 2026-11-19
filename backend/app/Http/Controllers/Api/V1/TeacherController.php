@@ -16,5 +16,5 @@ class TeacherController extends Controller
     public function store(StoreTeacherRequest $request): JsonResponse { return response()->json(['data'=>Teacher::create($request->validated())],201); }
     public function show(Teacher $teacher): JsonResponse { return response()->json(['data'=>$teacher->load('institution','availabilities')]); }
     public function update(StoreTeacherRequest $request, Teacher $teacher): JsonResponse { $teacher->update($request->validated()); return response()->json(['data'=>$teacher->fresh()]); }
-    public function destroy(Teacher $teacher): JsonResponse { $teacher->delete(); return response()->json(null,204); }
+    public function destroy(Teacher $teacher): JsonResponse { abort_unless(request()->user()?->role === 'admin', 403); $teacher->delete(); return response()->json(null,204); }
 }
