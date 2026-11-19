@@ -11,7 +11,10 @@ use Illuminate\Support\Collection;
 
 final class TimetableGenerator
 {
-    public function __construct(private readonly ConflictDetector $conflictDetector) {}
+    public function __construct(
+        private readonly ConflictDetector $conflictDetector,
+        private readonly AvailabilityConstraint $availability,
+    ) {}
 
     /**
      * Generate a deterministic first-fit draft. Hard conflicts are never persisted.
@@ -25,7 +28,10 @@ final class TimetableGenerator
             $placed = false;
 
             foreach ($slots as $slot) {
-                if ($slot->is_break || $this->slotDuration($slot) < $assignment->duration_minutes) {
+                if ($slot->is_break
+                    || $this->slotDuration($slot) < $assignment->duration_minutes
+                    || ! $this->availability->teacherAvailable($assignment->teacher_id, $slot)
+                    || ! $this->availability->roomAvailable($assignment->room_id, $slot)) {
                     continue;
                 }
 
@@ -55,7 +61,7 @@ final class TimetableGenerator
                     'course_id' => $assignment->course_id,
                     'session_number' => $assignment->session_number,
                     'teacher_id' => $assignment->teacher_id,
-                    'message' => 'No conflict-free time slot with sufficient duration was found.',
+                    'message' => 'No conflict-free slot with sufficient duration and availability was found.',
                 ]);
             }
         }
