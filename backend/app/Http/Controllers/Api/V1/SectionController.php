@@ -46,6 +46,7 @@ class SectionController extends Controller
 
     public function destroy(Section $section): JsonResponse
     {
+        abort_unless(request()->user()?->role === 'admin', 403);
         $section->delete();
         return response()->json(null, 204);
     }
