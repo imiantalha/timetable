@@ -12,9 +12,9 @@ use Illuminate\Http\Request;
 
 class TimeSlotController extends Controller
 {
-    public function index(Request $request): JsonResponse { $items=TimeSlot::query()->orderBy('day_of_week')->orderBy('starts_at')->paginate($request->integer('per_page',30)); return response()->json(['data'=>$items]); }
+    public function index(Request $request): JsonResponse { $items=TimeSlot::query()->when($request->user()?->institution_id, fn ($query, $id) => $query->where('institution_id', $id))->when($request->filled('institution_id'), fn ($query) => $query->where('institution_id', $request->integer('institution_id')))->orderBy('day_of_week')->orderBy('starts_at')->paginate($request->integer('per_page',100)); return response()->json(['data'=>$items]); }
     public function store(StoreTimeSlotRequest $request): JsonResponse { return response()->json(['data'=>TimeSlot::create($request->validated())],201); }
     public function show(TimeSlot $timeSlot): JsonResponse { return response()->json(['data'=>$timeSlot->load('institution')]); }
     public function update(StoreTimeSlotRequest $request, TimeSlot $timeSlot): JsonResponse { $timeSlot->update($request->validated()); return response()->json(['data'=>$timeSlot->fresh()]); }
-    public function destroy(TimeSlot $timeSlot): JsonResponse { $timeSlot->delete(); return response()->json(null,204); }
+    public function destroy(TimeSlot $timeSlot): JsonResponse { abort_unless(request()->user()?->role === 'admin', 403); $timeSlot->delete(); return response()->json(null,204); }
 }

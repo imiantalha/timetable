@@ -51,21 +51,9 @@ export default function GenerationConfig({
   }, []);
 
   useEffect(() => {
-    if (!departmentId) {
-      setSections([]);
-      setCourses([]);
-      setTeachers([]);
-      setSectionId(null);
-      setCourseIds([]);
-      setTeacherId(null);
-      return;
-    }
+    if (!departmentId) return;
 
     let active = true;
-    setError('');
-    setSectionId(null);
-    setCourseIds([]);
-    setTeacherId(null);
 
     Promise.all([getSections(departmentId), getCourses(departmentId), getTeachers(departmentId)])
       .then(([sectionOptions, courseOptions, teacherOptions]) => {
@@ -82,6 +70,17 @@ export default function GenerationConfig({
       active = false;
     };
   }, [departmentId]);
+
+  function changeDepartment(nextDepartmentId: number | null) {
+    setDepartmentId(nextDepartmentId);
+    setSections([]);
+    setCourses([]);
+    setTeachers([]);
+    setSectionId(null);
+    setCourseIds([]);
+    setTeacherId(null);
+    setError('');
+  }
 
   const toggleCourse = (id: number) => {
     setCourseIds((current) =>
@@ -140,7 +139,7 @@ export default function GenerationConfig({
       {error && <p role="alert" className="mb-4 text-sm text-red-300">{error}</p>}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Select label="Department" value={departmentId} onChange={setDepartmentId} options={departments} />
+        <Select label="Department" value={departmentId} onChange={changeDepartment} options={departments} />
         <Select label="Section" value={sectionId} onChange={setSectionId} options={sections} disabled={!departmentId} />
         <Select label="Teacher" value={teacherId} onChange={setTeacherId} options={teachers} disabled={!departmentId} />
         <Select label="Room" value={roomId} onChange={setRoomId} options={rooms} />
