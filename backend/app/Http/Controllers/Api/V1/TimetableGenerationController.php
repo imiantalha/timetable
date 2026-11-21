@@ -43,14 +43,30 @@ final class TimetableGenerationController extends Controller
             $teacherIds = $assignments->pluck('teacher_id')->unique();
             $roomIds = $assignments->pluck('room_id')->unique();
 
-            $courses = Course::query()->whereIn('id', $courseIds)->get(['id', 'department_id'])->keyBy('id');
-            $sections = Section::query()->whereIn('id', $sectionIds)->get(['id', 'department_id'])->keyBy('id');
+            // Scope indirect resources through their department's institution.
+            // Existence validation alone would allow a tenant admin to attach
+            // another institution's course or section to their own timetable.
+            $courses = Course::query()
+                ->whereIn('id', $courseIds)
+                ->whereHas('department', fn ($query) => $query->where('institution_id', $lockedTimetable->institution_id))
+                ->get(['id', 'department_id'])
+                ->keyBy('id');
+
+            $sections = Section::query()
+                ->whereIn('id', $sectionIds)
+                ->whereHas('department', fn ($query) => $query->where('institution_id', $lockedTimetable->institution_id))
+                ->get(['id', 'department_id'])
+                ->keyBy('id');
+
             $validTeachers = Teacher::query()
                 ->where('institution_id', $lockedTimetable->institution_id)
-                ->whereIn('id', $teacherIds)->count();
+                ->whereIn('id', $teacherIds)
+                ->count();
+
             $validRooms = Room::query()
                 ->where('institution_id', $lockedTimetable->institution_id)
-                ->whereIn('id', $roomIds)->count();
+                ->whereIn('id', $roomIds)
+                ->count();
 
             if ($courses->count() !== $courseIds->count()
                 || $sections->count() !== $sectionIds->count()
@@ -62,7 +78,7 @@ final class TimetableGenerationController extends Controller
             }
 
             foreach ($assignments as $assignment) {
-                if ($courses[$assignment->course_id]->department_id !== $sections[$assignment->section_id]->department_id) {
+                if ((int) $courses[$assignment->course_id]->department_id !== (int) $sections[$assignment->section_id]->department_id) {
                     throw ValidationException::withMessages([
                         'assignments' => ['Each course and section must belong to the same department.'],
                     ]);
