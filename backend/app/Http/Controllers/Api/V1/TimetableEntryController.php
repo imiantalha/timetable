@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace App\\Http\\Controllers\\Api\\V1;
+namespace App\Http\Controllers\Api\V1;
 
-use App\\Domain\\Scheduling\\AvailabilityConstraint;
-use App\\Domain\\Scheduling\\ConflictDetector;
-use App\\Http\\Controllers\\Controller;
-use App\\Http\\Requests\\StoreTimetableEntryRequest;
-use App\\Models\\Course;
-use App\\Models\\Room;
-use App\\Models\\Section;
-use App\\Models\\Teacher;
-use App\\Models\\TimeSlot;
-use App\\Models\\Timetable;
-use App\\Models\\TimetableEntry;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Carbon;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Validation\\ValidationException;
-use Symfony\\Component\\HttpKernel\\Exception\\ConflictHttpException;
+use App\Domain\Scheduling\AvailabilityConstraint;
+use App\Domain\Scheduling\ConflictDetector;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreTimetableEntryRequest;
+use App\Models\Course;
+use App\Models\Room;
+use App\Models\Section;
+use App\Models\Teacher;
+use App\Models\TimeSlot;
+use App\Models\Timetable;
+use App\Models\TimetableEntry;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 final class TimetableEntryController extends Controller
 {
