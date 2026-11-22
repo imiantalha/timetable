@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\\Http\\Controllers\\Api\\V1;
 
-use App\Domain\Scheduling\AvailabilityConstraint;
-use App\Domain\Scheduling\ConflictDetector;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreTimetableEntryRequest;
-use App\Models\Course;
-use App\Models\Room;
-use App\Models\Section;
-use App\Models\Teacher;
-use App\Models\TimeSlot;
-use App\Models\Timetable;
-use App\Models\TimetableEntry;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use App\\Domain\\Scheduling\\AvailabilityConstraint;
+use App\\Domain\\Scheduling\\ConflictDetector;
+use App\\Http\\Controllers\\Controller;
+use App\\Http\\Requests\\StoreTimetableEntryRequest;
+use App\\Models\\Course;
+use App\\Models\\Room;
+use App\\Models\\Section;
+use App\\Models\\Teacher;
+use App\\Models\\TimeSlot;
+use App\\Models\\Timetable;
+use App\\Models\\TimetableEntry;
+use Illuminate\\Http\\JsonResponse;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Carbon;
+use Illuminate\\Support\\Facades\\DB;
+use Illuminate\\Validation\\ValidationException;
+use Symfony\\Component\\HttpKernel\\Exception\\ConflictHttpException;
 
 final class TimetableEntryController extends Controller
 {
@@ -86,12 +86,13 @@ final class TimetableEntryController extends Controller
             $duplicate = TimetableEntry::query()
                 ->where('timetable_id', $timetable->id)
                 ->where('course_id', $course->id)
+                ->where('section_id', $section->id)
                 ->where('session_number', $data['session_number'])
                 ->exists();
 
             if ($duplicate) {
                 throw ValidationException::withMessages([
-                    'session_number' => ['This course session already exists in the timetable.'],
+                    'session_number' => ['This course session already exists for the selected section in the timetable.'],
                 ]);
             }
 
