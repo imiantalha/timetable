@@ -86,12 +86,13 @@ final class TimetableEntryController extends Controller
             $duplicate = TimetableEntry::query()
                 ->where('timetable_id', $timetable->id)
                 ->where('course_id', $course->id)
+                ->where('section_id', $section->id)
                 ->where('session_number', $data['session_number'])
                 ->exists();
 
             if ($duplicate) {
                 throw ValidationException::withMessages([
-                    'session_number' => ['This course session already exists in the timetable.'],
+                    'session_number' => ['This course session already exists for the selected section in the timetable.'],
                 ]);
             }
 

@@ -25,16 +25,16 @@ Users belong optionally to an institution. Institution-scoped API access is enfo
 
 ## Timetable entries
 
-Each entry associates one timetable, course, teacher, section, room, time slot and session number. A unique database constraint prevents the same course session from being inserted twice into one timetable.
+Each entry associates one timetable, course, teacher, section, room, time slot and session number. A unique database constraint prevents the same course session from being inserted twice for the same section in one timetable. The same course may therefore be scheduled independently for multiple sections.
 
 Indexes support lookups by timetable/time slot and by teacher, section or room/time slot. The scheduling domain additionally detects overlaps between time ranges, not only identical time-slot IDs.
 
 ## Course and time-slot rules
 
-Courses store credits, sessions_per_week and duration_minutes. Generation expands a course into its required weekly sessions and only uses slots long enough for the course.
+Courses store credits, sessions_per_week and duration_minutes. Generation expands a course into its required weekly sessions and only uses slots long enough for the course. Explicit session numbers must be within the course's configured weekly session count.
 
 Time slots store a day_of_week (0–6), starts_at, ends_at and is_break flag. Overlapping time-slot definitions for the same institution/day are rejected.
 
 ## Availability
 
-Teacher and room availability rows define a day and an available time interval. If a resource has no availability rows, it is treated as unrestricted. Once availability rows exist, a selected slot must fit entirely inside an available interval.
+Teacher and room availability rows define a day and an available time interval. If a resource has no availability rows, it is treated as unrestricted. Once availability rows exist, a selected slot must fit entirely inside an available interval; an overlapping unavailable interval takes precedence.

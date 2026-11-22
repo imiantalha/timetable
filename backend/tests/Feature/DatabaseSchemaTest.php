@@ -31,4 +31,19 @@ final class DatabaseSchemaTest extends TestCase
             $this->assertTrue(Schema::hasTable($table), "Expected the {$table} table to exist.");
         }
     }
+
+    public function test_course_session_uniqueness_is_scoped_to_the_section(): void
+    {
+        $indexes = collect(Schema::getIndexes('timetable_entries'));
+
+        $this->assertTrue($indexes->contains(
+            fn (array $index): bool => ($index['unique'] ?? false)
+                && $index['columns'] === ['timetable_id', 'course_id', 'section_id', 'session_number'],
+        ));
+
+        $this->assertFalse($indexes->contains(
+            fn (array $index): bool => ($index['unique'] ?? false)
+                && $index['columns'] === ['timetable_id', 'course_id', 'session_number'],
+        ));
+    }
 }
