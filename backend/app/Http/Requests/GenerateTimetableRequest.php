@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\\Http\\Requests;
+namespace App\Http\Requests;
 
-use App\\Models\\Course;
-use Illuminate\\Foundation\\Http\\FormRequest;
-use Illuminate\\Validation\\Validator;
+use App\Models\Course;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 final class GenerateTimetableRequest extends FormRequest
 {
