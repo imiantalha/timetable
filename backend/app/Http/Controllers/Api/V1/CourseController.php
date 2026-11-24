@@ -24,7 +24,7 @@ class CourseController extends Controller
                     ->orWhere('code', 'ilike', "%{$search}%"));
             })
             ->orderBy('name')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 100));
 
         return response()->json(['data' => $courses]);
     }
