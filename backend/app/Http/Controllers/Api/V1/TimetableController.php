@@ -19,7 +19,7 @@ final class TimetableController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $items = Timetable::query()->when($request->user()?->institution_id, fn ($query, $id) => $query->where('institution_id', $id))->with('semester.academicYear')->orderByDesc('created_at')->paginate($request->integer('per_page', 15));
+        $items = Timetable::query()->when($request->user()?->institution_id, fn ($query, $id) => $query->where('institution_id', $id))->with('semester.academicYear')->orderByDesc('created_at')->paginate(min(max($request->integer('per_page', 15), 1), 100));
 
         return response()->json(['data' => $items]);
     }
