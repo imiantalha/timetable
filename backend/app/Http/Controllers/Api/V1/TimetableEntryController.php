@@ -36,7 +36,7 @@ final class TimetableEntryController extends Controller
             ->where('timetable_id', $request->integer('timetable_id'))
             ->with(['course:id,name,code', 'teacher:id,first_name,last_name', 'section:id,name,code', 'room:id,name,code', 'timeSlot:id,day_of_week,starts_at,ends_at'])
             ->orderBy('time_slot_id')
-            ->paginate($request->integer('per_page', 50));
+            ->paginate(min(max($request->integer('per_page', 50), 1), 100));
 
         return response()->json(['data' => $entries]);
     }
